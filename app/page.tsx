@@ -1,13 +1,13 @@
 import GameCanvas from "@/components/GameCanvas";
 import HUD from "@/components/HUD";
-import SkillChoice from "@/components/SkillChoice";
+import SkillTreeHUD from "@/components/SkillTreeHUD";
 
 export default function Page() {
   return (
     <main className="fixed inset-0 overflow-hidden bg-[#0a0a0f]">
       <GameCanvas />
       <HUD />
-      <SkillChoice />
+      <SkillTreeHUD />
     </main>
   );
 }

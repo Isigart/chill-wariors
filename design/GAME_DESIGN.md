@@ -64,25 +64,23 @@ Chaque famille a son propre arbre de maîtrise méta, indépendant des arbres in
 
 ### 3.5 Progression à deux niveaux
 
-**Arbre interne (par arme)**
+**Arbre interne (par arme)** — modèle "training mode"
 
 Chaque arme individuelle a son propre arbre de skill multi-branches. Exemple pour l'épée tournoyante :
 
-- Branche vitesse : la rotation accélère
-- Branche portée : le rayon de rotation augmente
-- Branche dégâts : chaque hit fait plus mal
+- Branche vitesse : la rotation accélère, anneau cinétique, ondes
+- Branche portée : la lame s'allonge, faux, lame fantôme, pierce
+- Branche dégâts : chiffres rouges, crits, explosions
 
-Choix cumulatifs **dans la limite du bracket courant** : le joueur peut investir dans toutes les branches s'il farme assez. Pas de respec, pas de regret possible — tout est gardé.
+5 paliers (T1→T5) par voie. Détail tier-par-tier dans `design/SWORD_TREE.md`.
 
-**Spécialisation par sacrifice** (à partir de v0.3) — l'arbre est divisé en 3 brackets de 3 tiers chacun :
+**Le joueur entraîne UNE seule voie à la fois.** Les kills nourrissent uniquement la voie entraînée. Le joueur switch de voie quand il veut, sans coût, via un HUD non-bloquant de 3 boutons en bas d'écran.
 
-- Tiers 1–3 : base, accessibles par défaut.
-- Tiers 4–6 : "voies supérieures", débloqués pour TOUTES les voies non-scellées après **1 sacrifice**. Le sacrifice scelle définitivement une voie : ses tiers sont révoqués, ses bonus disparaissent, on ne peut plus jamais y investir.
-- Tiers 7–9 : "voies finales", débloqués par un **2e sacrifice** d'une autre voie. Avec 3 voies au départ, un build complet T9 sur une voie demande 2 sacrifices ⇒ il reste 1 voie vivante au plafond.
+**Cumulatif, sans regret, sans respec.** Les 3 voies peuvent être maxées si on farme assez. Pas de choix exclusif, pas de sacrifice, pas de palier qui en bloque d'autres. Un palier débloqué l'est pour toujours.
 
-Le sacrifice consomme un level-up MAIS grant **immédiatement** le 1er tier du nouveau bracket sur la voie qui a déclenché le déblocage. Exemple : si tu as Vitesse à T3 et que tu cliques "Débloquer voies supérieures" sur Vitesse puis sacrifies Dégâts, tu reçois Vitesse T4 dans la même action. Le coût (voie scellée) reste lourd, le payoff est instantané et visible — pas de level-up gâché.
+**Auto-unlock** : quand la jauge atteint le seuil d'un tier, ce tier débloque automatiquement — pas de validation manuelle, pas de modal. Flash bref sur le bouton concerné pour signaler.
 
-Effets visuels du sacrifice : flash blanc + screen shake + popup "VOIE X SCELLÉE" — pour marquer le moment comme un évènement majeur.
+Les paliers doivent être des transformations visibles, pas juste des "+10%". Ex. "ton épée est désormais en feu", "ton épée fait 3× la taille du perso", "ton épée laisse une traînée", "ta lame traverse les mobs sans s'arrêter".
 
 Les paliers doivent être des transformations visibles, pas juste des "+10%". Ex. "ton épée est désormais en feu", "ton épée fait 3× la taille du perso", "ton épée laisse une traînée", "une lame fantôme apparaît à 180°".
 
@@ -99,10 +97,6 @@ Chaque famille a son arbre méta, alimenté par les kills des armes de cette fam
 
 - 3 armes de base disponibles dès le départ. Une par famille de base (1-main, distance, 2-mains, magique — à décider laquelle est gardée pour plus tard). Probablement : épée 1-main, arc distance, hache 2-mains.
 - Les autres armes se débloquent via les futures instances de défi. Chaque instance est thématiquement liée à l'arme qu'elle débloque.
-
-### 3.6 bis. Note sur "pas de regret" vs sacrifice
-
-La règle "pas de regret possible" du §1 ne s'applique pas au sacrifice — c'est le SEUL endroit du jeu où un choix retire des bonus déjà acquis. Compromis assumé : le sacrifice est la transgression de règle de l'arbre interne, l'analogue petit-échelle du déblocage final des familles. Sans lui, l'arbre interne plafonne à T3 et le joueur n'a plus rien à choisir après ~10 level-ups.
 
 ### 3.7 Économie & chiffres
 

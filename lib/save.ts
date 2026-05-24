@@ -1,106 +1,56 @@
 import { useGame } from "./store";
-import type { SkillChoice } from "@/game/skills";
-import type { SwordBranch } from "@/lib/balance";
+import { createProgression, type SwordProgression } from "@/game/progression";
+import { BRANCHES, type Branch } from "@/lib/balance";
 
-const KEY = "chill-warriors:v0.3";
-const LEGACY_KEY = "chill-warriors:v0.2";
-const VERSION = 2;
+const KEY = "chill-warriors:v0.4";
+const LEGACY_KEYS = ["chill-warriors:v0.2", "chill-warriors:v0.3"];
+const VERSION = 3;
 
-interface SaveV2 {
-  v: 2;
+interface SaveV3 {
+  v: 3;
   kills: number;
-  wave: number;
-  swordLevel: number;
-  swordXp: number;
-  swordXpToNext: number;
-  skills: SkillChoice[];
-  sealedBranches: SwordBranch[];
-  extendedTier: number;
+  progression: SwordProgression;
 }
-
-interface SaveV1 {
-  v: 1;
-  kills: number;
-  wave: number;
-  swordLevel: number;
-  swordXp: number;
-  swordXpToNext: number;
-  skills: SkillChoice[];
-}
-
-type AnySave = SaveV1 | SaveV2;
 
 /** Lit le save (si présent et valide) et hydrate le store. */
-export function loadSave(): { wave: number; skills: SkillChoice[]; sealedBranches: SwordBranch[] } | null {
+export function loadSave(): { progression: SwordProgression } | null {
   if (typeof window === "undefined") return null;
+
+  // Nettoyage des saves legacy (v0.2 / v0.3) — schéma incompatible.
+  // On les supprime au passage pour ne pas polluer localStorage.
+  for (const lk of LEGACY_KEYS) {
+    try {
+      window.localStorage.removeItem(lk);
+    } catch {
+      /* noop */
+    }
+  }
+
   try {
-    let raw = window.localStorage.getItem(KEY);
-    let migratingFromLegacy = false;
-    if (!raw) {
-      // Migration depuis v0.2 si présent.
-      raw = window.localStorage.getItem(LEGACY_KEY);
-      migratingFromLegacy = !!raw;
-      if (!raw) return null;
-    }
-    const parsed = JSON.parse(raw) as AnySave;
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SaveV3;
+    if (parsed.v !== VERSION) return null;
 
-    const upgraded: SaveV2 = parsed.v === 2 ? parsed : {
-      v: 2,
-      kills: parsed.kills ?? 0,
-      wave: parsed.wave ?? 1,
-      swordLevel: parsed.swordLevel ?? 1,
-      swordXp: parsed.swordXp ?? 0,
-      swordXpToNext: parsed.swordXpToNext ?? 10,
-      skills: parsed.skills ?? [],
-      sealedBranches: [],
-      extendedTier: 0,
-    };
-
+    const prog = sanitizeProgression(parsed.progression);
     useGame.getState().hydrate({
-      kills: upgraded.kills,
-      wave: upgraded.wave,
-      swordLevel: upgraded.swordLevel,
-      swordXp: upgraded.swordXp,
-      swordXpToNext: upgraded.swordXpToNext,
-      skills: upgraded.skills,
-      sealedBranches: upgraded.sealedBranches,
-      extendedTier: upgraded.extendedTier,
+      kills: parsed.kills ?? 0,
+      progression: prog,
     });
-
-    if (migratingFromLegacy) {
-      // Bascule sur la nouvelle clé et nettoie l'ancienne.
-      try {
-        window.localStorage.setItem(KEY, JSON.stringify(upgraded));
-        window.localStorage.removeItem(LEGACY_KEY);
-      } catch {
-        /* noop */
-      }
-    }
-
-    return {
-      wave: upgraded.wave,
-      skills: upgraded.skills,
-      sealedBranches: upgraded.sealedBranches,
-    };
+    return { progression: prog };
   } catch {
     return null;
   }
 }
 
-/** Persiste l'état HUD du store. */
+/** Persiste l'état du store. */
 export function persistFromStore() {
   if (typeof window === "undefined") return;
   const s = useGame.getState();
-  const data: SaveV2 = {
+  const data: SaveV3 = {
     v: VERSION,
     kills: s.kills,
-    wave: s.wave,
-    swordLevel: s.swordLevel,
-    swordXp: s.swordXp,
-    swordXpToNext: s.swordXpToNext,
-    skills: s.skills,
-    sealedBranches: s.sealedBranches,
-    extendedTier: s.extendedTier,
+    progression: s.progression,
   };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));
@@ -109,13 +59,36 @@ export function persistFromStore() {
   }
 }
 
-/** Reset complet (utile pour les tests / dev). */
 export function clearSave() {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(KEY);
-    window.localStorage.removeItem(LEGACY_KEY);
+    for (const lk of LEGACY_KEYS) window.localStorage.removeItem(lk);
   } catch {
     /* noop */
   }
+}
+
+/** Valide / corrige une progression chargée. Évite les NaN, branches inconnues. */
+function sanitizeProgression(input: unknown): SwordProgression {
+  const def = createProgression();
+  if (!input || typeof input !== "object") return def;
+  const i = input as Partial<SwordProgression>;
+  const trainingBranch: Branch =
+    BRANCHES.includes(i.trainingBranch as Branch) ? (i.trainingBranch as Branch) : def.trainingBranch;
+  const xp = { ...def.xp };
+  const tier = { ...def.tier };
+  if (i.xp && typeof i.xp === "object") {
+    for (const b of BRANCHES) {
+      const v = (i.xp as Record<string, unknown>)[b];
+      if (typeof v === "number" && v >= 0 && Number.isFinite(v)) xp[b] = v;
+    }
+  }
+  if (i.tier && typeof i.tier === "object") {
+    for (const b of BRANCHES) {
+      const v = (i.tier as Record<string, unknown>)[b];
+      if (typeof v === "number" && v >= 0 && v <= 5 && Number.isInteger(v)) tier[b] = v;
+    }
+  }
+  return { trainingBranch, xp, tier };
 }
