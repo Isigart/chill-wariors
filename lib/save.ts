@@ -1,8 +1,22 @@
 import { useGame } from "./store";
 import type { SkillChoice } from "@/game/skills";
+import type { SwordBranch } from "@/lib/balance";
 
-const KEY = "chill-warriors:v0.2";
-const VERSION = 1;
+const KEY = "chill-warriors:v0.3";
+const LEGACY_KEY = "chill-warriors:v0.2";
+const VERSION = 2;
+
+interface SaveV2 {
+  v: 2;
+  kills: number;
+  wave: number;
+  swordLevel: number;
+  swordXp: number;
+  swordXpToNext: number;
+  skills: SkillChoice[];
+  sealedBranches: SwordBranch[];
+  extendedTier: number;
+}
 
 interface SaveV1 {
   v: 1;
@@ -14,42 +28,70 @@ interface SaveV1 {
   skills: SkillChoice[];
 }
 
-/** Lit le save (si présent et valide) et hydrate le store. À appeler 1× au mount. */
-export function loadSave(): { wave: number; skills: SkillChoice[] } | null {
+type AnySave = SaveV1 | SaveV2;
+
+/** Lit le save (si présent et valide) et hydrate le store. */
+export function loadSave(): { wave: number; skills: SkillChoice[]; sealedBranches: SwordBranch[] } | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SaveV1;
-    if (parsed.v !== VERSION) return null;
+    let raw = window.localStorage.getItem(KEY);
+    let migratingFromLegacy = false;
+    if (!raw) {
+      // Migration depuis v0.2 si présent.
+      raw = window.localStorage.getItem(LEGACY_KEY);
+      migratingFromLegacy = !!raw;
+      if (!raw) return null;
+    }
+    const parsed = JSON.parse(raw) as AnySave;
 
-    useGame.getState().hydrate({
+    const upgraded: SaveV2 = parsed.v === 2 ? parsed : {
+      v: 2,
       kills: parsed.kills ?? 0,
       wave: parsed.wave ?? 1,
       swordLevel: parsed.swordLevel ?? 1,
       swordXp: parsed.swordXp ?? 0,
       swordXpToNext: parsed.swordXpToNext ?? 10,
       skills: parsed.skills ?? [],
+      sealedBranches: [],
+      extendedTier: 0,
+    };
+
+    useGame.getState().hydrate({
+      kills: upgraded.kills,
+      wave: upgraded.wave,
+      swordLevel: upgraded.swordLevel,
+      swordXp: upgraded.swordXp,
+      swordXpToNext: upgraded.swordXpToNext,
+      skills: upgraded.skills,
+      sealedBranches: upgraded.sealedBranches,
+      extendedTier: upgraded.extendedTier,
     });
 
+    if (migratingFromLegacy) {
+      // Bascule sur la nouvelle clé et nettoie l'ancienne.
+      try {
+        window.localStorage.setItem(KEY, JSON.stringify(upgraded));
+        window.localStorage.removeItem(LEGACY_KEY);
+      } catch {
+        /* noop */
+      }
+    }
+
     return {
-      wave: parsed.wave ?? 1,
-      skills: parsed.skills ?? [],
+      wave: upgraded.wave,
+      skills: upgraded.skills,
+      sealedBranches: upgraded.sealedBranches,
     };
   } catch {
     return null;
   }
 }
 
-/**
- * Persiste l'état HUD du store.
- * Pas de debounce : c'est appelé au max 1×/s côté GameCanvas (interval),
- * et chaque write est tiny (<1 KB).
- */
+/** Persiste l'état HUD du store. */
 export function persistFromStore() {
   if (typeof window === "undefined") return;
   const s = useGame.getState();
-  const data: SaveV1 = {
+  const data: SaveV2 = {
     v: VERSION,
     kills: s.kills,
     wave: s.wave,
@@ -57,11 +99,13 @@ export function persistFromStore() {
     swordXp: s.swordXp,
     swordXpToNext: s.swordXpToNext,
     skills: s.skills,
+    sealedBranches: s.sealedBranches,
+    extendedTier: s.extendedTier,
   };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));
   } catch {
-    // localStorage plein / inaccessible — on ignore, c'est qu'un cache local.
+    /* noop */
   }
 }
 
@@ -70,6 +114,7 @@ export function clearSave() {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(KEY);
+    window.localStorage.removeItem(LEGACY_KEY);
   } catch {
     /* noop */
   }

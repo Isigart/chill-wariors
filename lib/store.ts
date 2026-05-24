@@ -4,12 +4,11 @@ import type { SwordBranch } from "@/lib/balance";
 
 /**
  * Store Zustand = ce que React doit afficher.
- * Le world mutable (mobs, particules, etc.) vit dans un useRef côté
- * GameCanvas — pas ici, sinon re-render à chaque tick = mort du framerate.
+ * Le world mutable vit dans un useRef côté GameCanvas — pas ici, sinon
+ * re-render à chaque tick = mort du framerate.
  *
- * Règle : le canvas LIT sans subscribe (`useGame.getState()`), pousse
- * les MAJ via les actions ci-dessous. Le HUD et la modale, eux,
- * subscribent normalement.
+ * Règle : le canvas LIT via `useGame.getState()` (no subscribe), pousse
+ * les MAJ via les actions. Le HUD et la modale subscribent normalement.
  */
 type GameStore = {
   // HUD
@@ -19,25 +18,34 @@ type GameStore = {
   swordXp: number;
   swordXpToNext: number;
 
-  // Skill tree state
+  // Arbre interne
   skills: SkillChoice[];
-  /** Modal de choix en attente. Présent ⇒ jeu en pause. */
+  /** Voies scellées (sacrifiées). 0 → 2 entrées max. */
+  sealedBranches: SwordBranch[];
+  /** 0 = base, 1 = supérieurs débloqués, 2 = finaux débloqués. */
+  extendedTier: number;
+
+  /** Modal de choix actif. tier = niveau d'épée venant d'être atteint. */
   pendingChoice: { tier: number } | null;
 
-  // Toggle de pause manuelle (différent de pendingChoice — pas utilisé en v0.2)
   paused: boolean;
 
-  // Hydratation depuis le save
+  // Hydratation
   hydrate: (s: Partial<Pick<GameStore,
-    "kills" | "wave" | "swordLevel" | "swordXp" | "swordXpToNext" | "skills"
+    "kills" | "wave" | "swordLevel" | "swordXp" | "swordXpToNext"
+    | "skills" | "sealedBranches" | "extendedTier"
   >>) => void;
 
-  // Actions de gameplay
+  // Actions gameplay (poussées depuis le tick).
   setKills: (n: number) => void;
   setWave: (n: number) => void;
   setSwordProgress: (level: number, xp: number, xpToNext: number) => void;
   requestSkillChoice: (tier: number) => void;
-  confirmSkillChoice: (branch: SwordBranch) => void;
+
+  /** Sélectionne le prochain tier d'une voie. */
+  takeNextTier: (branch: SwordBranch) => void;
+  /** Sacrifie une voie pour débloquer le prochain bracket. */
+  sacrificeBranch: (sacrificed: SwordBranch) => void;
 
   togglePause: () => void;
 };
@@ -50,6 +58,9 @@ export const useGame = create<GameStore>((set, get) => ({
   swordXpToNext: 10,
 
   skills: [],
+  sealedBranches: [],
+  extendedTier: 0,
+
   pendingChoice: null,
 
   paused: false,
@@ -62,10 +73,11 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ swordLevel: level, swordXp: xp, swordXpToNext: xpToNext }),
 
   requestSkillChoice: (tier) => set({ pendingChoice: { tier } }),
-  confirmSkillChoice: (branch) => {
-    const { pendingChoice, skills } = get();
+
+  takeNextTier: (branch) => {
+    const { pendingChoice, skills, sealedBranches } = get();
     if (!pendingChoice) return;
-    // tier choisi = la hauteur courante de la branche + 1 (cumulatif par branche)
+    if (sealedBranches.includes(branch)) return;
     const heightOfBranch = skills.reduce(
       (h, s) => (s.branch === branch && s.tier > h ? s.tier : h),
       0,
@@ -73,6 +85,18 @@ export const useGame = create<GameStore>((set, get) => ({
     const nextTier = heightOfBranch + 1;
     set({
       skills: [...skills, { branch, tier: nextTier }],
+      pendingChoice: null,
+    });
+  },
+
+  sacrificeBranch: (sacrificed) => {
+    const { pendingChoice, sealedBranches, extendedTier } = get();
+    if (!pendingChoice) return;
+    if (sealedBranches.includes(sacrificed)) return;
+    if (extendedTier >= 2) return; // déjà au max d'unlock
+    set({
+      sealedBranches: [...sealedBranches, sacrificed],
+      extendedTier: extendedTier + 1,
       pendingChoice: null,
     });
   },

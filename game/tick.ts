@@ -3,17 +3,18 @@ import type { Mob, TickHooks, World } from "./types";
 import { tickWave } from "./waves";
 
 const TRAIL_LIFE_MS = 180;
-const TRAIL_SAMPLE_MS = 16; // ~1 sample par frame max
+const TRAIL_SAMPLE_MS = 16;
+const TWO_PI = Math.PI * 2;
 
 /**
  * Avance le monde de `dtMs` millisecondes.
  *
  * Ordre :
- *  1. Hit-stop : si le temps est figé, on consomme dt et on sort.
- *  2. Décroissance shake + flash.
- *  3. Cycle de vague (spawn/cleaning/rest).
- *  4. Déplacement mobs vers le perso.
- *  5. Rotation épée (vitesse effective) + collisions.
+ *  1. Hit-stop.
+ *  2. Decay shake + flash.
+ *  3. Cycle de vague.
+ *  4. Déplacement mobs.
+ *  5. Rotation épée + collisions par SWEEP (arc balayé entre frame N-1 et N).
  *  6. Vieillissement particules / popups / trail.
  */
 export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
@@ -25,16 +26,14 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   world.nowMs += dtMs;
   const dtSec = dtMs / 1000;
 
-  // Decay shake + flash.
   world.screenShake = Math.max(0, world.screenShake - BALANCE.juice.screenShakeDecay * dtSec);
   world.flashMs = Math.max(0, world.flashMs - dtMs);
 
-  // Vagues.
   tickWave(world, dtMs, hooks);
 
-  // Déplacement mobs.
   const px = world.player.pos.x;
   const py = world.player.pos.y;
+
   for (const mob of world.mobs) {
     const dx = px - mob.pos.x;
     const dy = py - mob.pos.y;
@@ -43,16 +42,18 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     mob.pos.y += (dy / dist) * mob.speed * dtSec;
   }
 
-  // Épée — stats effectives.
   const eff = world.sword.effective;
-  world.sword.angle = (world.sword.angle + eff.rotationSpeed * dtSec) % (Math.PI * 2);
+  // On capture l'angle AVANT de l'avancer pour disposer de l'arc balayé.
+  const a0 = world.sword.angle;
+  const a1 = (a0 + eff.rotationSpeed * dtSec) % TWO_PI;
+  world.sword.angle = a1;
+  const deltaA = ((a1 - a0) % TWO_PI + TWO_PI) % TWO_PI;
 
   const tip = {
-    x: px + Math.cos(world.sword.angle) * eff.length,
-    y: py + Math.sin(world.sword.angle) * eff.length,
+    x: px + Math.cos(a1) * eff.length,
+    y: py + Math.sin(a1) * eff.length,
   };
 
-  // Trail (échantillonnage par âge — pas plus dense que TRAIL_SAMPLE_MS).
   if (eff.visuals.trail) {
     const last = world.trail[0];
     if (!last || last.ageMs >= TRAIL_SAMPLE_MS) {
@@ -62,14 +63,40 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     world.trail.length = 0;
   }
 
-  // Collisions épée↔mob.
+  // Collisions par sweep angulaire : un mob est touché si son disque
+  // intersecte l'aire balayée entre a0 et a1, dans la portée [0, length+r+hw].
+  const halfWidth = eff.width / 2;
+  const reach = eff.length + halfWidth;
   const killedIds: number[] = [];
+
   for (const mob of world.mobs) {
     if (mob.hp <= 0) continue;
-    const d = distancePointToSegment(mob.pos, world.player.pos, tip);
-    const hitThreshold = mob.radius + (eff.width / 2);
-    if (d > hitThreshold) continue;
 
+    const dx = mob.pos.x - px;
+    const dy = mob.pos.y - py;
+    const d = Math.hypot(dx, dy);
+    if (d > reach + mob.radius) continue;
+
+    // Largeur angulaire du mob vue du pivot, élargie par half-width de la lame.
+    // Si le mob est très proche, on considère qu'il occupe tout l'angle (Math.PI).
+    const effectiveR = mob.radius + halfWidth;
+    const angR = d > effectiveR ? Math.asin(effectiveR / d) : Math.PI;
+
+    const thetaM = Math.atan2(dy, dx);
+    const offset = ((thetaM - a0) % TWO_PI + TWO_PI) % TWO_PI;
+
+    let angDist: number;
+    if (offset <= deltaA) {
+      angDist = 0; // centre du mob dans l'arc balayé
+    } else {
+      const distToEnd = offset - deltaA;
+      const distToStart = TWO_PI - offset;
+      angDist = Math.min(distToEnd, distToStart);
+    }
+
+    if (angDist > angR) continue;
+
+    // Cooldown anti multi-hit (par mob).
     const lastHit = world.sword.lastHits.get(mob.id) ?? -Infinity;
     if (world.nowMs - lastHit < BALANCE.sword.hitCooldownMs) continue;
     world.sword.lastHits.set(mob.id, world.nowMs);
@@ -83,13 +110,13 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
       grantXp(world, BALANCE.sword.xpPerKill, hooks);
     }
   }
+
   if (killedIds.length > 0) {
     const dead = new Set(killedIds);
     world.mobs = world.mobs.filter((m) => !dead.has(m.id));
     for (const id of killedIds) world.sword.lastHits.delete(id);
   }
 
-  // Vieillissement particules.
   for (const p of world.particles) {
     p.ageMs += dtMs;
     p.pos.x += p.vel.x * dtSec;
@@ -102,7 +129,6 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   for (const pop of world.popups) pop.ageMs += dtMs;
   world.popups = world.popups.filter((p) => p.ageMs < p.lifeMs);
 
-  // Trail aging.
   for (const t of world.trail) t.ageMs += dtMs;
   world.trail = world.trail.filter((t) => t.ageMs < TRAIL_LIFE_MS);
 }
@@ -130,11 +156,16 @@ function grantXp(world: World, amount: number, hooks: TickHooks) {
 
 function onMobKilled(world: World, mob: Mob) {
   world.screenShake = Math.max(world.screenShake, BALANCE.juice.screenShakeOnKill);
-  world.hitStopMs = Math.max(world.hitStopMs, BALANCE.juice.hitStopOnKillMs);
+
+  // Hit-stop : cooldown global pour ne pas geler le jeu en cas d'enchaînement.
+  if (world.nowMs - world.lastHitStopAt >= BALANCE.juice.hitStopCooldownMs) {
+    world.hitStopMs = Math.max(world.hitStopMs, BALANCE.juice.hitStopOnKillMs);
+    world.lastHitStopAt = world.nowMs;
+  }
 
   const count = BALANCE.juice.particlesPerKill;
   for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+    const a = (i / count) * TWO_PI + Math.random() * 0.3;
     const speed = BALANCE.juice.particleSpeed * (0.6 + Math.random() * 0.6);
     world.particles.push({
       pos: { x: mob.pos.x, y: mob.pos.y },
@@ -152,16 +183,4 @@ function onMobKilled(world: World, mob: Mob) {
     ageMs: 0,
     color: "#ffe18a",
   });
-}
-
-function distancePointToSegment(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return Math.hypot(p.x - a.x, p.y - a.y);
-  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
-  t = Math.max(0, Math.min(1, t));
-  const cx = a.x + t * dx;
-  const cy = a.y + t * dy;
-  return Math.hypot(p.x - cx, p.y - cy);
 }

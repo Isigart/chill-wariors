@@ -72,9 +72,17 @@ Chaque arme individuelle a son propre arbre de skill multi-branches. Exemple pou
 - Branche portée : le rayon de rotation augmente
 - Branche dégâts : chaque hit fait plus mal
 
-Choix cumulatifs : le joueur peut investir dans toutes les branches s'il farme assez. Pas de respec, pas de regret possible — tout est gardé.
+Choix cumulatifs **dans la limite du bracket courant** : le joueur peut investir dans toutes les branches s'il farme assez. Pas de respec, pas de regret possible — tout est gardé.
 
-Les paliers doivent être des transformations visibles, pas juste des "+10%". Ex. "ton épée est désormais en feu", "ton épée fait 3× la taille du perso", "ton épée laisse une traînée".
+**Spécialisation par sacrifice** (à partir de v0.3) — l'arbre est divisé en 3 brackets de 3 tiers chacun :
+
+- Tiers 1–3 : base, accessibles par défaut.
+- Tiers 4–6 : "voies supérieures", débloqués pour TOUTES les voies non-scellées après **1 sacrifice**. Le sacrifice scelle définitivement une voie : ses tiers sont révoqués, ses bonus disparaissent, on ne peut plus jamais y investir.
+- Tiers 7–9 : "voies finales", débloqués par un **2e sacrifice** d'une autre voie. Avec 3 voies au départ, un build complet T9 sur une voie demande 2 sacrifices ⇒ il reste 1 voie vivante au plafond.
+
+Le sacrifice est consommé par un level-up (pas de tier acquis ce tour-ci). C'est le coût en tempo qui compense le déblocage durable.
+
+Les paliers doivent être des transformations visibles, pas juste des "+10%". Ex. "ton épée est désormais en feu", "ton épée fait 3× la taille du perso", "ton épée laisse une traînée", "une lame fantôme apparaît à 180°".
 
 **Arbre de famille (méta)**
 
@@ -89,6 +97,10 @@ Chaque famille a son arbre méta, alimenté par les kills des armes de cette fam
 
 - 3 armes de base disponibles dès le départ. Une par famille de base (1-main, distance, 2-mains, magique — à décider laquelle est gardée pour plus tard). Probablement : épée 1-main, arc distance, hache 2-mains.
 - Les autres armes se débloquent via les futures instances de défi. Chaque instance est thématiquement liée à l'arme qu'elle débloque.
+
+### 3.6 bis. Note sur "pas de regret" vs sacrifice
+
+La règle "pas de regret possible" du §1 ne s'applique pas au sacrifice — c'est le SEUL endroit du jeu où un choix retire des bonus déjà acquis. Compromis assumé : le sacrifice est la transgression de règle de l'arbre interne, l'analogue petit-échelle du déblocage final des familles. Sans lui, l'arbre interne plafonne à T3 et le joueur n'a plus rien à choisir après ~10 level-ups.
 
 ### 3.7 Économie & chiffres
 

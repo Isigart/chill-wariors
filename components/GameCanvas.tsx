@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { createWorld, resizeWorld } from "@/game/world";
 import { tickWorld } from "@/game/tick";
 import { renderWorld } from "@/game/render";
-import { computeEffectiveSword, hasAnyAvailableTier } from "@/game/skills";
+import { computeEffectiveSword, hasAnyChoiceAvailable } from "@/game/skills";
 import type { World } from "@/game/types";
 import { useGame } from "@/lib/store";
 import { xpToNextLevel } from "@/lib/balance";
@@ -50,9 +50,10 @@ export default function GameCanvas() {
     const restored = loadSave();
     const startWave = restored?.wave ?? 1;
     const skills = restored?.skills ?? [];
+    const sealedBranches = restored?.sealedBranches ?? [];
 
     const world = createWorld(window.innerWidth, window.innerHeight, startWave);
-    world.sword.effective = computeEffectiveSword(skills);
+    world.sword.effective = computeEffectiveSword(skills, sealedBranches);
 
     // Restaure niveau / xp depuis le store déjà hydraté par loadSave.
     const st0 = useGame.getState();
@@ -85,9 +86,8 @@ export default function GameCanvas() {
             s.setKills(s.kills + 1);
           },
           onLevelUp: () => {
-            // Ouvre le modal de choix si au moins une voie reste.
             const s = useGame.getState();
-            if (hasAnyAvailableTier(s.skills)) {
+            if (hasAnyChoiceAvailable(s.skills, s.sealedBranches, s.extendedTier)) {
               s.requestSkillChoice(w.sword.level);
             }
           },
@@ -127,15 +127,17 @@ export default function GameCanvas() {
     };
   }, []);
 
-  // Recalcule les stats effectives quand `skills` change (et SEULEMENT alors).
-  // On évite `useGame.subscribe(...)` non-sliced qui fire à chaque kill.
+  // Recalcule les stats effectives quand skills OU sealedBranches change.
+  // On compare par ref pour éviter le travail à chaque setKills/setWave/...
   const lastSkillsRef = useRef<unknown>(null);
+  const lastSealedRef = useRef<unknown>(null);
   useEffect(() => {
     const unsub = useGame.subscribe((s) => {
       if (!worldRef.current) return;
-      if (s.skills === lastSkillsRef.current) return;
+      if (s.skills === lastSkillsRef.current && s.sealedBranches === lastSealedRef.current) return;
       lastSkillsRef.current = s.skills;
-      worldRef.current.sword.effective = computeEffectiveSword(s.skills);
+      lastSealedRef.current = s.sealedBranches;
+      worldRef.current.sword.effective = computeEffectiveSword(s.skills, s.sealedBranches);
     });
     return unsub;
   }, []);

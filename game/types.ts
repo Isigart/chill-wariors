@@ -89,6 +89,8 @@ export interface World {
   flashMs: number;
   /** Temps restant à figer (ms). Si > 0, on skip le tick. */
   hitStopMs: number;
+  /** Dernière fois (nowMs) où un hit-stop a été déclenché. Cooldown global. */
+  lastHitStopAt: number;
   nextId: number;
   viewport: { w: number; h: number };
   /** Horloge interne (ms). Pour cooldowns. */
