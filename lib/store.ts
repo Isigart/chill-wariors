@@ -44,8 +44,12 @@ type GameStore = {
 
   /** Sélectionne le prochain tier d'une voie. */
   takeNextTier: (branch: SwordBranch) => void;
-  /** Sacrifie une voie pour débloquer le prochain bracket. */
-  sacrificeBranch: (sacrificed: SwordBranch) => void;
+  /**
+   * Sacrifie une voie pour débloquer le prochain bracket ET grant
+   * immédiatement le 1er tier du nouveau bracket sur `unlockTarget`.
+   * Le coût (voie scellée) reste, mais le payoff est instantané.
+   */
+  sacrificeFor: (unlockTarget: SwordBranch, sacrificed: SwordBranch) => void;
 
   togglePause: () => void;
 };
@@ -89,14 +93,26 @@ export const useGame = create<GameStore>((set, get) => ({
     });
   },
 
-  sacrificeBranch: (sacrificed) => {
-    const { pendingChoice, sealedBranches, extendedTier } = get();
+  sacrificeFor: (unlockTarget, sacrificed) => {
+    const { pendingChoice, sealedBranches, extendedTier, skills } = get();
     if (!pendingChoice) return;
     if (sealedBranches.includes(sacrificed)) return;
-    if (extendedTier >= 2) return; // déjà au max d'unlock
+    if (sealedBranches.includes(unlockTarget)) return;
+    if (unlockTarget === sacrificed) return;
+    if (extendedTier >= 2) return;
+
+    // Calcule la hauteur actuelle de `unlockTarget` et le tier qui sera
+    // automatiquement grant (le 1er du nouveau bracket).
+    const heightOfTarget = skills.reduce(
+      (h, s) => (s.branch === unlockTarget && s.tier > h ? s.tier : h),
+      0,
+    );
+    const grantedTier = heightOfTarget + 1;
+
     set({
       sealedBranches: [...sealedBranches, sacrificed],
       extendedTier: extendedTier + 1,
+      skills: [...skills, { branch: unlockTarget, tier: grantedTier }],
       pendingChoice: null,
     });
   },

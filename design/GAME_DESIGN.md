@@ -80,7 +80,9 @@ Choix cumulatifs **dans la limite du bracket courant** : le joueur peut investir
 - Tiers 4–6 : "voies supérieures", débloqués pour TOUTES les voies non-scellées après **1 sacrifice**. Le sacrifice scelle définitivement une voie : ses tiers sont révoqués, ses bonus disparaissent, on ne peut plus jamais y investir.
 - Tiers 7–9 : "voies finales", débloqués par un **2e sacrifice** d'une autre voie. Avec 3 voies au départ, un build complet T9 sur une voie demande 2 sacrifices ⇒ il reste 1 voie vivante au plafond.
 
-Le sacrifice est consommé par un level-up (pas de tier acquis ce tour-ci). C'est le coût en tempo qui compense le déblocage durable.
+Le sacrifice consomme un level-up MAIS grant **immédiatement** le 1er tier du nouveau bracket sur la voie qui a déclenché le déblocage. Exemple : si tu as Vitesse à T3 et que tu cliques "Débloquer voies supérieures" sur Vitesse puis sacrifies Dégâts, tu reçois Vitesse T4 dans la même action. Le coût (voie scellée) reste lourd, le payoff est instantané et visible — pas de level-up gâché.
+
+Effets visuels du sacrifice : flash blanc + screen shake + popup "VOIE X SCELLÉE" — pour marquer le moment comme un évènement majeur.
 
 Les paliers doivent être des transformations visibles, pas juste des "+10%". Ex. "ton épée est désormais en feu", "ton épée fait 3× la taille du perso", "ton épée laisse une traînée", "une lame fantôme apparaît à 180°".
 

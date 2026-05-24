@@ -7,7 +7,7 @@ import { renderWorld } from "@/game/render";
 import { computeEffectiveSword, hasAnyChoiceAvailable } from "@/game/skills";
 import type { World } from "@/game/types";
 import { useGame } from "@/lib/store";
-import { xpToNextLevel } from "@/lib/balance";
+import { xpToNextLevel, SWORD_BRANCHES, type SwordBranch } from "@/lib/balance";
 import { loadSave, persistFromStore } from "@/lib/save";
 
 /**
@@ -128,16 +128,42 @@ export default function GameCanvas() {
   }, []);
 
   // Recalcule les stats effectives quand skills OU sealedBranches change.
-  // On compare par ref pour éviter le travail à chaque setKills/setWave/...
+  // Quand une voie passe scellée, on déclenche un flash + shake + popup.
   const lastSkillsRef = useRef<unknown>(null);
-  const lastSealedRef = useRef<unknown>(null);
+  const lastSealedRef = useRef<SwordBranch[] | null>(null);
   useEffect(() => {
     const unsub = useGame.subscribe((s) => {
-      if (!worldRef.current) return;
-      if (s.skills === lastSkillsRef.current && s.sealedBranches === lastSealedRef.current) return;
+      const world = worldRef.current;
+      if (!world) return;
+      const skillsChanged = s.skills !== lastSkillsRef.current;
+      const sealedChanged = s.sealedBranches !== lastSealedRef.current;
+      if (!skillsChanged && !sealedChanged) return;
+
+      // Détecte une voie nouvellement scellée pour les FX.
+      const prevSealed = lastSealedRef.current ?? [];
+      const newlySealed = s.sealedBranches.filter(
+        (b) => !prevSealed.includes(b),
+      );
+
       lastSkillsRef.current = s.skills;
       lastSealedRef.current = s.sealedBranches;
-      worldRef.current.sword.effective = computeEffectiveSword(s.skills, s.sealedBranches);
+      world.sword.effective = computeEffectiveSword(s.skills, s.sealedBranches);
+
+      // Effets de sacrifice (visuels + son ressenti via shake + flash).
+      if (newlySealed.length > 0) {
+        world.screenShake = Math.max(world.screenShake, 14);
+        world.flashMs = Math.max(world.flashMs, 400);
+        const label = SWORD_BRANCHES.includes(newlySealed[0])
+          ? newlySealed[0].toUpperCase()
+          : "VOIE";
+        world.popups.push({
+          pos: { x: world.player.pos.x, y: world.player.pos.y - 60 },
+          text: `${label} SCELLÉE`,
+          lifeMs: 1400,
+          ageMs: 0,
+          color: "#ff6b6b",
+        });
+      }
     });
     return unsub;
   }, []);

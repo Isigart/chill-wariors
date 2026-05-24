@@ -41,7 +41,7 @@ export default function SkillChoice() {
   const sealedBranches = useGame((s) => s.sealedBranches);
   const extendedTier = useGame((s) => s.extendedTier);
   const takeNextTier = useGame((s) => s.takeNextTier);
-  const sacrificeBranch = useGame((s) => s.sacrificeBranch);
+  const sacrificeFor = useGame((s) => s.sacrificeFor);
 
   const [step, setStep] = useState<"action" | "sacrifice">("action");
   const [unlockTarget, setUnlockTarget] = useState<SwordBranch | null>(null);
@@ -76,7 +76,7 @@ export default function SkillChoice() {
             skills={skills}
             sealedBranches={sealedBranches}
             extendedTier={extendedTier}
-            onSacrifice={(sacrificed) => sacrificeBranch(sacrificed)}
+            onSacrifice={(sacrificed) => sacrificeFor(unlockTarget!, sacrificed)}
             onCancel={() => setStep("action")}
           />
         )}
@@ -170,6 +170,9 @@ function SacrificeStep(props: {
 }) {
   const candidates = sacrificeCandidates(props.sealedBranches, props.target);
   const tint = BRANCH_TINT[props.target];
+  const targetHeight = branchHeight(props.skills, props.sealedBranches, props.target);
+  const grantedTier = targetHeight + 1;
+  const grantedDef = BALANCE.swordTree[props.target][grantedTier - 1];
 
   return (
     <>
@@ -178,9 +181,20 @@ function SacrificeStep(props: {
           SACRIFICE REQUIS
         </div>
         <div className="mt-1 font-mono text-2xl font-bold text-white">
-          Pour débloquer{" "}
-          <span style={{ color: tint }}>{BRACKET_LABEL[props.extendedTier]}</span>,<br />
-          quelle voie scelles-tu ?
+          Quelle voie scelles-tu ?
+        </div>
+      </div>
+
+      {/* Récap du gain : tier accordé + bracket débloqué. */}
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] px-5 py-3 font-mono">
+        <div className="flex items-baseline justify-center gap-3 text-xs">
+          <span className="text-white/40">EN RETOUR&nbsp;:</span>
+          <span style={{ color: tint }}>
+            T{grantedTier} {BRANCH_LABEL[props.target]} — {grantedDef?.label}
+          </span>
+        </div>
+        <div className="mt-1 text-center text-[10px] tracking-[0.2em] text-white/30">
+          + {BRACKET_LABEL[props.extendedTier]} accessibles pour toutes les voies vivantes
         </div>
       </div>
 
