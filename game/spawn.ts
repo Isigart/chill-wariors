@@ -1,27 +1,15 @@
-import { BALANCE } from "@/lib/balance";
+import { waveMobStats } from "@/lib/balance";
 import type { World } from "./types";
 
-/**
- * Accumule un budget de spawn et fait apparaître les mobs un par un
- * sur un cercle hors-champ. Garantit un débit constant indépendant
- * du framerate.
- */
-export function tickSpawn(world: World, dtMs: number) {
-  const dtSec = dtMs / 1000;
-  world.spawnAccum += dtSec * BALANCE.mob.spawnRatePerSec;
-
-  while (world.spawnAccum >= 1) {
-    world.spawnAccum -= 1;
-    spawnOne(world);
-  }
-}
-
-function spawnOne(world: World) {
+/** Spawn UN mob à la position d'un point aléatoire hors-champ. */
+export function spawnOneMob(world: World) {
   const { w, h } = world.viewport;
-  const radius = (Math.min(w, h) / 2) * BALANCE.mob.spawnDistance;
+  const radius = (Math.min(w, h) / 2) * 1.2;
   const angle = Math.random() * Math.PI * 2;
   const cx = w / 2;
   const cy = h / 2;
+
+  const stats = waveMobStats(world.wave.index);
 
   world.mobs.push({
     id: world.nextId++,
@@ -29,8 +17,9 @@ function spawnOne(world: World) {
       x: cx + Math.cos(angle) * radius,
       y: cy + Math.sin(angle) * radius,
     },
-    hp: BALANCE.mob.hp,
-    radius: BALANCE.mob.radius,
-    speed: BALANCE.mob.speed,
+    hp: stats.hp,
+    maxHp: stats.hp,
+    radius: stats.radius,
+    speed: stats.speed,
   });
 }

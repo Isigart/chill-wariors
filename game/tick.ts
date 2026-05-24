@@ -1,20 +1,22 @@
-import { BALANCE } from "@/lib/balance";
+import { BALANCE, xpToNextLevel } from "@/lib/balance";
 import type { Mob, TickHooks, World } from "./types";
-import { tickSpawn } from "./spawn";
+import { tickWave } from "./waves";
+
+const TRAIL_LIFE_MS = 180;
+const TRAIL_SAMPLE_MS = 16; // ~1 sample par frame max
 
 /**
  * Avance le monde de `dtMs` millisecondes.
  *
- * Ordre des opérations (volontaire) :
+ * Ordre :
  *  1. Hit-stop : si le temps est figé, on consomme dt et on sort.
- *  2. Décroissance du screen shake.
- *  3. Spawn.
- *  4. Mouvement mobs (vers le perso).
- *  5. Rotation épée + collisions épée↔mob.
- *  6. Vieillissement particules / popups.
+ *  2. Décroissance shake + flash.
+ *  3. Cycle de vague (spawn/cleaning/rest).
+ *  4. Déplacement mobs vers le perso.
+ *  5. Rotation épée (vitesse effective) + collisions.
+ *  6. Vieillissement particules / popups / trail.
  */
 export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
-  // 1. Hit-stop : le temps est figé pendant N ms après un kill.
   if (world.hitStopMs > 0) {
     world.hitStopMs = Math.max(0, world.hitStopMs - dtMs);
     return;
@@ -23,13 +25,14 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   world.nowMs += dtMs;
   const dtSec = dtMs / 1000;
 
-  // 2. Screen shake decay (vers 0).
+  // Decay shake + flash.
   world.screenShake = Math.max(0, world.screenShake - BALANCE.juice.screenShakeDecay * dtSec);
+  world.flashMs = Math.max(0, world.flashMs - dtMs);
 
-  // 3. Spawn.
-  tickSpawn(world, dtMs);
+  // Vagues.
+  tickWave(world, dtMs, hooks);
 
-  // 4. Déplacement mobs.
+  // Déplacement mobs.
   const px = world.player.pos.x;
   const py = world.player.pos.y;
   for (const mob of world.mobs) {
@@ -40,69 +43,95 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     mob.pos.y += (dy / dist) * mob.speed * dtSec;
   }
 
-  // 5. Rotation épée + collisions.
-  world.sword.angle = (world.sword.angle + BALANCE.sword.rotationSpeed * dtSec) % (Math.PI * 2);
+  // Épée — stats effectives.
+  const eff = world.sword.effective;
+  world.sword.angle = (world.sword.angle + eff.rotationSpeed * dtSec) % (Math.PI * 2);
 
   const tip = {
-    x: px + Math.cos(world.sword.angle) * BALANCE.sword.length,
-    y: py + Math.sin(world.sword.angle) * BALANCE.sword.length,
+    x: px + Math.cos(world.sword.angle) * eff.length,
+    y: py + Math.sin(world.sword.angle) * eff.length,
   };
 
-  const killedIds: number[] = [];
+  // Trail (échantillonnage par âge — pas plus dense que TRAIL_SAMPLE_MS).
+  if (eff.visuals.trail) {
+    const last = world.trail[0];
+    if (!last || last.ageMs >= TRAIL_SAMPLE_MS) {
+      world.trail.unshift({ tip: { ...tip }, pivot: { x: px, y: py }, ageMs: 0 });
+    }
+  } else {
+    world.trail.length = 0;
+  }
 
+  // Collisions épée↔mob.
+  const killedIds: number[] = [];
   for (const mob of world.mobs) {
     if (mob.hp <= 0) continue;
-
     const d = distancePointToSegment(mob.pos, world.player.pos, tip);
-    const hitThreshold = mob.radius + BALANCE.sword.width / 2;
+    const hitThreshold = mob.radius + (eff.width / 2);
     if (d > hitThreshold) continue;
 
-    // Cooldown anti multi-hit.
     const lastHit = world.sword.lastHits.get(mob.id) ?? -Infinity;
     if (world.nowMs - lastHit < BALANCE.sword.hitCooldownMs) continue;
     world.sword.lastHits.set(mob.id, world.nowMs);
 
-    mob.hp -= BALANCE.sword.damage;
+    mob.hp -= eff.damage;
 
     if (mob.hp <= 0) {
       killedIds.push(mob.id);
       onMobKilled(world, mob);
       hooks.onKill();
+      grantXp(world, BALANCE.sword.xpPerKill, hooks);
     }
   }
-
-  // Purge des mobs morts et de leur entrée dans lastHits.
   if (killedIds.length > 0) {
     const dead = new Set(killedIds);
     world.mobs = world.mobs.filter((m) => !dead.has(m.id));
     for (const id of killedIds) world.sword.lastHits.delete(id);
   }
 
-  // 6. Vieillissement particules.
+  // Vieillissement particules.
   for (const p of world.particles) {
     p.ageMs += dtMs;
     p.pos.x += p.vel.x * dtSec;
     p.pos.y += p.vel.y * dtSec;
-    // Friction légère pour éviter qu'elles partent trop loin.
     p.vel.x *= 0.92;
     p.vel.y *= 0.92;
   }
   world.particles = world.particles.filter((p) => p.ageMs < p.lifeMs);
 
-  // 6 bis. Popups.
-  for (const pop of world.popups) {
-    pop.ageMs += dtMs;
-  }
+  for (const pop of world.popups) pop.ageMs += dtMs;
   world.popups = world.popups.filter((p) => p.ageMs < p.lifeMs);
+
+  // Trail aging.
+  for (const t of world.trail) t.ageMs += dtMs;
+  world.trail = world.trail.filter((t) => t.ageMs < TRAIL_LIFE_MS);
+}
+
+function grantXp(world: World, amount: number, hooks: TickHooks) {
+  world.sword.xp += amount;
+  let leveledUp = false;
+  while (world.sword.xp >= xpToNextLevel(world.sword.level)) {
+    world.sword.xp -= xpToNextLevel(world.sword.level);
+    world.sword.level += 1;
+    leveledUp = true;
+    hooks.onLevelUp(world.sword.level);
+  }
+  if (leveledUp) {
+    world.flashMs = BALANCE.juice.levelUpFlashMs;
+    world.popups.push({
+      pos: { x: world.player.pos.x, y: world.player.pos.y - 30 },
+      text: `LVL ${world.sword.level}`,
+      lifeMs: 900,
+      ageMs: 0,
+      color: "#9ce5ff",
+    });
+  }
 }
 
 function onMobKilled(world: World, mob: Mob) {
-  // Screen shake : on prend le max pour ne pas se faire écraser par un kill plus mou.
   world.screenShake = Math.max(world.screenShake, BALANCE.juice.screenShakeOnKill);
-  // Hit-stop.
   world.hitStopMs = Math.max(world.hitStopMs, BALANCE.juice.hitStopOnKillMs);
 
-  // Particules.
   const count = BALANCE.juice.particlesPerKill;
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2 + Math.random() * 0.3;
@@ -116,16 +145,15 @@ function onMobKilled(world: World, mob: Mob) {
     });
   }
 
-  // Popup.
   world.popups.push({
     pos: { x: mob.pos.x, y: mob.pos.y },
     text: "+1",
     lifeMs: BALANCE.juice.popupLifeMs,
     ageMs: 0,
+    color: "#ffe18a",
   });
 }
 
-/** Distance d'un point à un segment [a,b]. */
 function distancePointToSegment(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
