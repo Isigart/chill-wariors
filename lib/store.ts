@@ -68,6 +68,7 @@ type GameStore = {
   // --- Debug ---
   devMaxAllWeapons: () => void;
   devGiveMithril: (amount: number) => void;
+  devResetAll: () => void;
 
   hydrate: (s: Partial<Pick<GameStore,
     "kills" | "progression" | "mithril" | "keys" | "mode"
@@ -216,6 +217,41 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   devGiveMithril: (amount) => set((s) => ({ mithril: s.mithril + amount })),
+
+  devResetAll: () => {
+    // Reset complet du store + suppression du save localStorage.
+    set({
+      kills: 0,
+      progression: createProgression(),
+      lastUnlocked: null,
+      mode: "idle",
+      playerHp: 100,
+      playerHpMax: 100,
+      mithril: 0,
+      mithrilInRun: 0,
+      instanceWave: 1,
+      keys: emptyKeys(),
+      trempageAttempts: 0,
+      lastTrempage: null,
+      panel: "none",
+    });
+    if (typeof window !== "undefined") {
+      try {
+        // Supprime toutes les clés legacy + actuelle.
+        const keysToWipe = [
+          "chill-warriors:v0.2",
+          "chill-warriors:v0.3",
+          "chill-warriors:v0.4",
+          "chill-warriors:v0.5",
+          "chill-warriors:v0.7",
+          "chill-warriors:v0.8",
+        ];
+        for (const k of keysToWipe) window.localStorage.removeItem(k);
+      } catch {
+        /* noop */
+      }
+    }
+  },
 
   hydrate: (s) => set((prev) => ({ ...prev, ...s })),
 }));

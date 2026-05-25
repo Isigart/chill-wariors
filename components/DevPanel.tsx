@@ -12,6 +12,7 @@ export default function DevPanel() {
   const mode = useGame((s) => s.mode);
   const devMaxAllWeapons = useGame((s) => s.devMaxAllWeapons);
   const devGiveMithril = useGame((s) => s.devGiveMithril);
+  const devResetAll = useGame((s) => s.devResetAll);
 
   if (mode !== "idle") return null;
 
@@ -52,6 +53,15 @@ export default function DevPanel() {
             className="rounded border border-amber-400/30 bg-amber-400/[0.05] px-2 py-1 text-left text-[10px] text-amber-200 hover:border-amber-400/60 hover:bg-amber-400/[0.12]"
           >
             ✦✦ +10 000 mithril
+          </button>
+          <button
+            onClick={() => {
+              if (typeof window !== "undefined" && !window.confirm("Reset complet : kills, armes, mithril, trempage, save. Sûr ?")) return;
+              devResetAll();
+            }}
+            className="mt-1 rounded border border-red-500/40 bg-red-500/[0.06] px-2 py-1 text-left text-[10px] font-bold tracking-[0.15em] text-red-300 hover:border-red-400 hover:bg-red-500/[0.18]"
+          >
+            ⚠ RESET ALL
           </button>
         </div>
       )}
