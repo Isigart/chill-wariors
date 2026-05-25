@@ -1,4 +1,4 @@
-import { BALANCE, type TierVisual } from "@/lib/balance";
+import { BALANCE, type SwordTierVisual } from "@/lib/balance";
 import type { World } from "./types";
 
 const TWO_PI = Math.PI * 2;
@@ -170,6 +170,60 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     }
   }
 
+  // 10 bis. Flèches (arc).
+  for (const a of world.arrows) {
+    if (a.beam) {
+      // Beam : ligne épaisse depuis la position de spawn jusqu'à la position courante.
+      // Spawn = derrière la flèche, calculé via vel × age.
+      const ageSec = (world.nowMs - a.spawnedAt) / 1000;
+      const sx = a.pos.x - a.vel.x * ageSec;
+      const sy = a.pos.y - a.vel.y * ageSec;
+      ctx.save();
+      ctx.shadowColor = a.visualTrailColor;
+      ctx.shadowBlur = 18;
+      ctx.lineCap = "round";
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = a.visualTrailColor;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(a.pos.x, a.pos.y);
+      ctx.stroke();
+      ctx.restore();
+      // Cœur clair au centre.
+      ctx.lineCap = "round";
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#fff7e0";
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(a.pos.x, a.pos.y);
+      ctx.stroke();
+    } else {
+      // Flèche normale : trail court (~40px) + tête lumineuse.
+      const len = Math.hypot(a.vel.x, a.vel.y) || 1;
+      const ux = a.vel.x / len;
+      const uy = a.vel.y / len;
+      const tailLen = a.homing ? 32 : 22;
+      const tx = a.pos.x - ux * tailLen;
+      const ty = a.pos.y - uy * tailLen;
+
+      ctx.lineCap = "round";
+      ctx.lineWidth = a.homing ? 3 : 2.2;
+      ctx.strokeStyle = a.visualTrailColor;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(a.pos.x, a.pos.y);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Tête lumineuse.
+      ctx.fillStyle = a.homing ? "#ffd6d6" : "#fff8c4";
+      ctx.beginPath();
+      ctx.arc(a.pos.x, a.pos.y, 2.8, 0, TWO_PI);
+      ctx.fill();
+    }
+  }
+
   // 11. Particules.
   for (const p of world.particles) {
     const t = p.ageMs / p.lifeMs;
@@ -213,7 +267,7 @@ function drawBlade(
   tipX: number,
   tipY: number,
   width: number,
-  visual: TierVisual,
+  visual: SwordTierVisual,
   tint: number,
 ) {
   const isFire = visual.permanentFire ?? false;

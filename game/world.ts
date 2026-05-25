@@ -1,7 +1,11 @@
-import { getEffectiveSwordStats, type SwordProgression } from "./progression";
+import {
+  getEffectiveBowStats,
+  getEffectiveSwordStats,
+  type GameProgression,
+} from "./progression";
 import type { World } from "./types";
 
-export function createWorld(w: number, h: number, prog: SwordProgression): World {
+export function createWorld(w: number, h: number, prog: GameProgression): World {
   return {
     ctx: { mode: "idle", modifiers: {} },
     player: { pos: { x: w / 2, y: h / 2 } },
@@ -12,7 +16,13 @@ export function createWorld(w: number, h: number, prog: SwordProgression): World
       effective: getEffectiveSwordStats(prog),
       lastShockwaveAngle: 0,
     },
+    bow: {
+      lastShotAt: -Infinity,
+      effective: getEffectiveBowStats(prog),
+    },
     mobs: [],
+    arrows: [],
+    pendingShots: [],
     particles: [],
     popups: [],
     trail: [],
@@ -29,7 +39,6 @@ export function createWorld(w: number, h: number, prog: SwordProgression): World
   };
 }
 
-/** Mettre à jour la taille (resize) en gardant le perso centré. */
 export function resizeWorld(world: World, w: number, h: number) {
   world.viewport.w = w;
   world.viewport.h = h;

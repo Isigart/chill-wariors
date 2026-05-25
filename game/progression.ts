@@ -1,125 +1,187 @@
 import {
   BALANCE,
-  BRANCHES,
-  type Branch,
-  type TierEffects,
-  type TierStatOverride,
-  type TierVisual,
+  BRANCHES_OF,
+  MAX_TIER,
+  type BowStatOverride,
+  type BowTierEffects,
+  type BowTierVisual,
+  type SwordStatOverride,
+  type SwordTierEffects,
+  type SwordTierVisual,
+  type WeaponKind,
 } from "@/lib/balance";
 
-/** Tier max possible par voie (5). */
-export const MAX_TIER = 5;
-
-/** État de progression de l'épée. */
-export interface SwordProgression {
-  trainingBranch: Branch;
-  xp: Record<Branch, number>;
-  tier: Record<Branch, number>; // 0..MAX_TIER
+/** Progression d'UNE arme : ses XPs et tiers par branche. */
+export interface WeaponProgression {
+  xp: Record<string, number>;
+  tier: Record<string, number>;
 }
 
-/** Stats effectives calculées. Lues par tick.ts et render.ts. */
+/** Progression GLOBALE du jeu : armes + sélection de training. */
+export interface GameProgression {
+  trainingWeapon: WeaponKind;
+  trainingBranch: string;
+  weapons: Record<WeaponKind, WeaponProgression>;
+}
+
+/* ---------- Stats effectives ---------- */
+
 export interface EffectiveSwordStats {
   length: number;
   width: number;
   rotationSpeed: number;
   damage: number;
   hitCooldownMs: number;
-  effects: TierEffects;
-  visual: TierVisual;
+  effects: SwordTierEffects;
+  visual: SwordTierVisual;
 }
 
-/** Crée une progression initiale (toute fraîche). */
-export function createProgression(): SwordProgression {
+export interface EffectiveBowStats {
+  range: number;
+  arrowSpeed: number;
+  fireRateMs: number;
+  damage: number;
+  arrowsPerShot: number;
+  spreadDegrees: number;
+  pierceCount: number;
+  effects: BowTierEffects;
+  visual: BowTierVisual;
+}
+
+/* ---------- Init ---------- */
+
+function emptyWeaponProg(kind: WeaponKind): WeaponProgression {
+  const xp: Record<string, number> = {};
+  const tier: Record<string, number> = {};
+  for (const b of BRANCHES_OF[kind]) {
+    xp[b as string] = 0;
+    tier[b as string] = 0;
+  }
+  return { xp, tier };
+}
+
+export function createProgression(): GameProgression {
   return {
+    trainingWeapon: "sword",
     trainingBranch: "speed",
-    xp: { speed: 0, range: 0, damage: 0 },
-    tier: { speed: 0, range: 0, damage: 0 },
+    weapons: {
+      sword: emptyWeaponProg("sword"),
+      bow: emptyWeaponProg("bow"),
+    },
   };
 }
 
-/** Change la branche entraînée (sans coût). */
-export function setTrainingBranch(prog: SwordProgression, branch: Branch) {
+/* ---------- Mutations ---------- */
+
+/** Change la sélection de training (weapon + branch). Sans coût. */
+export function setTraining(prog: GameProgression, weapon: WeaponKind, branch: string) {
+  const branches = BRANCHES_OF[weapon] as readonly string[];
+  if (!branches.includes(branch)) return;
+  prog.trainingWeapon = weapon;
   prog.trainingBranch = branch;
 }
 
 /**
- * Ajoute `amount` xp sur la branche entraînée.
- * Si un palier est franchi, incrémente le tier et renvoie {branch, tier}.
- * Plusieurs paliers peuvent être franchis d'un coup (cap à MAX_TIER).
+ * Award `amount` xp sur la sélection courante. Renvoie le palier
+ * débloqué (le plus récent en cas de multiple) ou null.
  */
 export function awardXp(
-  prog: SwordProgression,
+  prog: GameProgression,
   amount: number,
-): { branch: Branch; tier: number } | null {
+): { weapon: WeaponKind; branch: string; tier: number } | null {
+  const w = prog.trainingWeapon;
   const b = prog.trainingBranch;
-  if (prog.tier[b] >= MAX_TIER) return null;
-  prog.xp[b] += amount;
+  const wp = prog.weapons[w];
+  if (wp.tier[b] >= MAX_TIER) return null;
+  wp.xp[b] += amount;
 
-  const thresholds = BALANCE.sword.branches[b].thresholds;
-  let unlocked: { branch: Branch; tier: number } | null = null;
-  while (
-    prog.tier[b] < MAX_TIER &&
-    prog.xp[b] >= thresholds[prog.tier[b]]
-  ) {
-    prog.tier[b] += 1;
-    unlocked = { branch: b, tier: prog.tier[b] };
+  const thresholds = (BALANCE.weapons[w].branches as Record<string, { thresholds: readonly number[] }>)[b].thresholds;
+  let unlocked: { weapon: WeaponKind; branch: string; tier: number } | null = null;
+  while (wp.tier[b] < MAX_TIER && wp.xp[b] >= thresholds[wp.tier[b]]) {
+    wp.tier[b] += 1;
+    unlocked = { weapon: w, branch: b, tier: wp.tier[b] };
   }
   return unlocked;
 }
 
-/**
- * XP requis pour atteindre le tier suivant ET XP courant DANS le palier
- * courant (pour afficher une jauge propre).
- */
-export function gaugeOf(prog: SwordProgression, branch: Branch) {
-  const t = prog.tier[branch];
-  if (t >= MAX_TIER) {
-    return { current: 1, max: 1, atMax: true };
-  }
-  const thresholds = BALANCE.sword.branches[branch].thresholds;
+/* ---------- Lecture ---------- */
+
+export function gaugeOf(prog: GameProgression, weapon: WeaponKind, branch: string) {
+  const wp = prog.weapons[weapon];
+  const t = wp.tier[branch] ?? 0;
+  if (t >= MAX_TIER) return { current: 1, max: 1, atMax: true };
+  const thresholds = (BALANCE.weapons[weapon].branches as Record<string, { thresholds: readonly number[] }>)[branch].thresholds;
   const prev = t === 0 ? 0 : thresholds[t - 1];
   const next = thresholds[t];
   return {
-    current: prog.xp[branch] - prev,
+    current: (wp.xp[branch] ?? 0) - prev,
     max: next - prev,
     atMax: false,
   };
 }
 
-/**
- * Calcule les stats effectives = base + overrides du tier ATTEINT de
- * chaque branche. Les flags d'effets et de visuels sont fusionnés
- * additivement (les flags les plus récents écrasent les anciens).
- */
-export function getEffectiveSwordStats(prog: SwordProgression): EffectiveSwordStats {
-  const base = BALANCE.sword.base;
-  const stats: TierStatOverride = {
-    length: base.length,
-    width: base.width,
-    rotationSpeed: base.rotationSpeed,
-    damage: base.damage,
-    hitCooldownMs: base.hitCooldownMs,
-  };
-  const effects: TierEffects = {};
-  const visual: TierVisual = {};
+export function tierOf(prog: GameProgression, weapon: WeaponKind, branch: string): number {
+  return prog.weapons[weapon].tier[branch] ?? 0;
+}
 
-  for (const branch of BRANCHES) {
-    const t = prog.tier[branch];
-    if (t === 0) continue;
-    // Le tier `t` correspond à l'index t-1 (tiers 0-indexed dans le tableau).
-    const def = BALANCE.sword.branches[branch].tiers[t - 1];
-    Object.assign(stats, def.stats);
+/* ---------- Stats effectives ---------- */
+
+export function getEffectiveSwordStats(prog: GameProgression): EffectiveSwordStats {
+  const base = BALANCE.weapons.sword.base;
+  let length: number = base.length;
+  let width: number = base.width;
+  let rotationSpeed: number = base.rotationSpeed;
+  let damage: number = base.damage;
+  let hitCooldownMs: number = base.hitCooldownMs;
+  const effects: SwordTierEffects = {};
+  const visual: SwordTierVisual = {};
+
+  const wp = prog.weapons.sword;
+  for (const branch of BRANCHES_OF.sword) {
+    const t = wp.tier[branch as string];
+    if (!t || t < 1) continue;
+    const def = BALANCE.weapons.sword.branches[branch].tiers[t - 1] as { stats: SwordStatOverride; effects?: SwordTierEffects; visual?: SwordTierVisual };
+    if (def.stats.length !== undefined) length = def.stats.length;
+    if (def.stats.width !== undefined) width = def.stats.width;
+    if (def.stats.rotationSpeed !== undefined) rotationSpeed = def.stats.rotationSpeed;
+    if (def.stats.damage !== undefined) damage = def.stats.damage;
+    if (def.stats.hitCooldownMs !== undefined) hitCooldownMs = def.stats.hitCooldownMs;
     if (def.effects) Object.assign(effects, def.effects);
     if (def.visual) Object.assign(visual, def.visual);
   }
 
-  return {
-    length: stats.length ?? base.length,
-    width: stats.width ?? base.width,
-    rotationSpeed: stats.rotationSpeed ?? base.rotationSpeed,
-    damage: stats.damage ?? base.damage,
-    hitCooldownMs: stats.hitCooldownMs ?? base.hitCooldownMs,
-    effects,
-    visual,
-  };
+  return { length, width, rotationSpeed, damage, hitCooldownMs, effects, visual };
 }
+
+export function getEffectiveBowStats(prog: GameProgression): EffectiveBowStats {
+  const base = BALANCE.weapons.bow.base;
+  let range: number = base.range;
+  let arrowSpeed: number = base.arrowSpeed;
+  let fireRateMs: number = base.fireRateMs;
+  let damage: number = base.damage;
+  let arrowsPerShot: number = base.arrowsPerShot;
+  let spreadDegrees: number = base.spreadDegrees;
+  let pierceCount: number = base.pierceCount;
+  const effects: BowTierEffects = {};
+  const visual: BowTierVisual = {};
+
+  const wp = prog.weapons.bow;
+  for (const branch of BRANCHES_OF.bow) {
+    const t = wp.tier[branch as string];
+    if (!t || t < 1) continue;
+    const def = BALANCE.weapons.bow.branches[branch].tiers[t - 1] as { stats: BowStatOverride; effects?: BowTierEffects; visual?: BowTierVisual };
+    if (def.stats.range !== undefined) range = def.stats.range;
+    if (def.stats.arrowSpeed !== undefined) arrowSpeed = def.stats.arrowSpeed;
+    if (def.stats.fireRateMs !== undefined) fireRateMs = def.stats.fireRateMs;
+    if (def.stats.damage !== undefined) damage = def.stats.damage;
+    if (def.stats.arrowsPerShot !== undefined) arrowsPerShot = def.stats.arrowsPerShot;
+    if (def.stats.spreadDegrees !== undefined) spreadDegrees = def.stats.spreadDegrees;
+    if (def.stats.pierceCount !== undefined) pierceCount = def.stats.pierceCount;
+    if (def.effects) Object.assign(effects, def.effects);
+    if (def.visual) Object.assign(visual, def.visual);
+  }
+
+  return { range, arrowSpeed, fireRateMs, damage, arrowsPerShot, spreadDegrees, pierceCount, effects, visual };
+}
+
+export { MAX_TIER } from "@/lib/balance";

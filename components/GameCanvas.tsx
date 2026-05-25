@@ -4,19 +4,11 @@ import { useEffect, useRef } from "react";
 import { createWorld, resizeWorld } from "@/game/world";
 import { tickWorld } from "@/game/tick";
 import { renderWorld } from "@/game/render";
-import { getEffectiveSwordStats } from "@/game/progression";
+import { getEffectiveBowStats, getEffectiveSwordStats } from "@/game/progression";
 import type { World } from "@/game/types";
 import { useGame } from "@/lib/store";
 import { loadSave, persistFromStore } from "@/lib/save";
 
-/**
- * Canvas plein écran + boucle de jeu.
- *
- *  - World mutable dans useRef (pas de re-render).
- *  - Canvas lit `useGame.getState()` (no subscribe).
- *  - HUD/SkillTreeHUD subscribent normalement.
- *  - Subscribe à `progression.tier` pour recacher les stats effectives.
- */
 export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const worldRef = useRef<World | null>(null);
@@ -42,7 +34,6 @@ export default function GameCanvas() {
     };
     setSize();
 
-    // Charge le save (hydrate le store), récupère la progression de départ.
     loadSave();
     const prog = useGame.getState().progression;
     const world = createWorld(window.innerWidth, window.innerHeight, prog);
@@ -87,16 +78,21 @@ export default function GameCanvas() {
     };
   }, []);
 
-  // Recache les stats effectives quand un tier change.
-  const lastTierRef = useRef<string>("");
+  // Recache les stats effectives des 2 armes quand leurs tiers changent.
+  const lastTiersKeyRef = useRef<string>("");
   useEffect(() => {
     const unsub = useGame.subscribe((s) => {
       const w = worldRef.current;
       if (!w) return;
-      const key = `${s.progression.tier.speed}-${s.progression.tier.range}-${s.progression.tier.damage}`;
-      if (key === lastTierRef.current) return;
-      lastTierRef.current = key;
+      const swT = s.progression.weapons.sword.tier;
+      const bwT = s.progression.weapons.bow.tier;
+      const key =
+        `${swT.speed ?? 0}-${swT.range ?? 0}-${swT.damage ?? 0}` +
+        `|${bwT.cadence ?? 0}-${bwT.pierce ?? 0}-${bwT.multi ?? 0}`;
+      if (key === lastTiersKeyRef.current) return;
+      lastTiersKeyRef.current = key;
       w.sword.effective = getEffectiveSwordStats(s.progression);
+      w.bow.effective = getEffectiveBowStats(s.progression);
     });
     return unsub;
   }, []);

@@ -1,34 +1,20 @@
 import { create } from "zustand";
 import {
-  type SwordProgression,
   awardXp as awardXpPure,
   createProgression,
-  setTrainingBranch as setTrainingBranchPure,
+  setTraining as setTrainingPure,
+  type GameProgression,
 } from "@/game/progression";
-import type { Branch } from "@/lib/balance";
+import type { WeaponKind } from "@/lib/balance";
 
-/**
- * Store Zustand = source de vérité de la PROGRESSION.
- *
- * - Le world (mobs, particules, etc.) reste un useRef côté GameCanvas.
- * - Le canvas LIT `useGame.getState().progression` ponctuellement
- *   (au moment de recalculer les stats effectives), SANS subscribe.
- * - Le HUD subscribe normalement.
- *
- * Les mutations passent par les actions ci-dessous, qui font des
- * updates immutables → Zustand notifie les subscribers.
- */
 type GameStore = {
   kills: number;
-  progression: SwordProgression;
-  /** Dernier palier débloqué (transitoire, consommé par le HUD pour le flash). */
-  lastUnlockedTier: { branch: Branch; tier: number } | null;
+  progression: GameProgression;
+  lastUnlocked: { weapon: WeaponKind; branch: string; tier: number } | null;
 
-  // Actions
   addKill: () => void;
-  setTrainingBranch: (b: Branch) => void;
-  /** Award `amount` XP. Renvoie le palier débloqué (null sinon). */
-  awardXp: (amount: number) => { branch: Branch; tier: number } | null;
+  setTraining: (weapon: WeaponKind, branch: string) => void;
+  awardXp: (amount: number) => { weapon: WeaponKind; branch: string; tier: number } | null;
   consumeLastUnlocked: () => void;
 
   hydrate: (s: Partial<Pick<GameStore, "kills" | "progression">>) => void;
@@ -37,37 +23,40 @@ type GameStore = {
 export const useGame = create<GameStore>((set, get) => ({
   kills: 0,
   progression: createProgression(),
-  lastUnlockedTier: null,
+  lastUnlocked: null,
 
   addKill: () => set((s) => ({ kills: s.kills + 1 })),
 
-  setTrainingBranch: (b) => {
+  setTraining: (weapon, branch) => {
     const prev = get().progression;
-    const next: SwordProgression = {
-      trainingBranch: prev.trainingBranch,
-      xp: { ...prev.xp },
-      tier: { ...prev.tier },
-    };
-    setTrainingBranchPure(next, b);
+    const next: GameProgression = clone(prev);
+    setTrainingPure(next, weapon, branch);
     set({ progression: next });
   },
 
   awardXp: (amount) => {
     const prev = get().progression;
-    const next: SwordProgression = {
-      trainingBranch: prev.trainingBranch,
-      xp: { ...prev.xp },
-      tier: { ...prev.tier },
-    };
+    const next: GameProgression = clone(prev);
     const unlocked = awardXpPure(next, amount);
     set({
       progression: next,
-      ...(unlocked ? { lastUnlockedTier: unlocked } : {}),
+      ...(unlocked ? { lastUnlocked: unlocked } : {}),
     });
     return unlocked;
   },
 
-  consumeLastUnlocked: () => set({ lastUnlockedTier: null }),
+  consumeLastUnlocked: () => set({ lastUnlocked: null }),
 
   hydrate: (s) => set((prev) => ({ ...prev, ...s })),
 }));
+
+function clone(p: GameProgression): GameProgression {
+  return {
+    trainingWeapon: p.trainingWeapon,
+    trainingBranch: p.trainingBranch,
+    weapons: {
+      sword: { xp: { ...p.weapons.sword.xp }, tier: { ...p.weapons.sword.tier } },
+      bow: { xp: { ...p.weapons.bow.xp }, tier: { ...p.weapons.bow.tier } },
+    },
+  };
+}

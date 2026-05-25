@@ -2,27 +2,13 @@ import { BALANCE } from "@/lib/balance";
 import type { Mob, TickHooks, Vec2, World } from "./types";
 import { tickSpawn } from "./spawn";
 import { applyKnockback, rollCrit, triggerExplosion } from "./effects";
+import { tickBow } from "./bow";
 
 const TRAIL_LIFE_MS = 180;
 const TRAIL_SAMPLE_MS = 16;
 const PHANTOM_BUFFER_MS = 80;
 const TWO_PI = Math.PI * 2;
 
-/**
- * Avance le monde de `dtMs` millisecondes.
- *
- *  1. Hit-stop : consomme dt et sort.
- *  2. Decay shake / flash, vieillissement shockwaves.
- *  3. Spawn continu.
- *  4. Mobs vers le perso.
- *  5. Knockback continu de l'aura cinétique (zoneDamage).
- *  6. Rotation épée + SWEEP collision.
- *  7. Vieillissement particules / popups / trail / phantom.
- *
- * Le tick attend un `hooks.onKill()` qu'il appelle pour chaque kill ;
- * l'attribution XP est faite par l'appelant (GameCanvas, qui pousse
- * dans le store).
- */
 export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   if (world.hitStopMs > 0) {
     world.hitStopMs = Math.max(0, world.hitStopMs - dtMs);
@@ -35,18 +21,16 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   world.screenShake = Math.max(0, world.screenShake - BALANCE.juice.screenShakeDecay * dtSec);
   world.flashMs = Math.max(0, world.flashMs - dtMs);
 
-  // Shockwaves : décay l'âge.
   for (const sw of world.shockwaves) sw.ageMs += dtMs;
   world.shockwaves = world.shockwaves.filter((s) => s.ageMs < s.lifeMs);
 
-  // Spawn.
   tickSpawn(world, dtMs);
 
   const px = world.player.pos.x;
   const py = world.player.pos.y;
   const pivot: Vec2 = { x: px, y: py };
 
-  // Déplacement mobs.
+  // Mouvement mobs.
   for (const mob of world.mobs) {
     const dx = px - mob.pos.x;
     const dy = py - mob.pos.y;
@@ -55,34 +39,28 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     mob.pos.y += (dy / dist) * mob.speed * dtSec;
   }
 
-  const eff = world.sword.effective;
+  /* ----- ÉPÉE ----- */
+
+  const sEff = world.sword.effective;
   const a0 = world.sword.angle;
-  const a1 = (a0 + eff.rotationSpeed * dtSec) % TWO_PI;
+  const a1 = (a0 + sEff.rotationSpeed * dtSec) % TWO_PI;
   world.sword.angle = a1;
   const deltaA = ((a1 - a0) % TWO_PI + TWO_PI) % TWO_PI;
 
   const tip: Vec2 = {
-    x: px + Math.cos(a1) * eff.length,
-    y: py + Math.sin(a1) * eff.length,
+    x: px + Math.cos(a1) * sEff.length,
+    y: py + Math.sin(a1) * sEff.length,
   };
 
-  // Détecter un PASSAGE par un cap (multiple de PI/2 par ex.) — on émet
-  // une shockwave si l'épée a fait au moins 1/4 de tour depuis la dernière.
-  if (eff.visual.shockwaveOnRotation) {
+  if (sEff.visual.shockwaveOnRotation) {
     const angleSinceLast = ((a1 - world.sword.lastShockwaveAngle) % TWO_PI + TWO_PI) % TWO_PI;
     if (angleSinceLast >= Math.PI) {
       world.sword.lastShockwaveAngle = a1;
-      world.shockwaves.push({
-        pos: { ...pivot },
-        radius: 0,
-        ageMs: 0,
-        lifeMs: 360,
-      });
+      world.shockwaves.push({ pos: { ...pivot }, radius: 0, ageMs: 0, lifeMs: 360 });
     }
   }
 
-  // Trail (échantillonnage).
-  if (eff.visual.trail && eff.visual.trail > 0) {
+  if (sEff.visual.trail && sEff.visual.trail > 0) {
     const last = world.trail[0];
     if (!last || last.ageMs >= TRAIL_SAMPLE_MS) {
       world.trail.unshift({ tip: { ...tip }, pivot: { ...pivot }, ageMs: 0 });
@@ -91,10 +69,8 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     world.trail.length = 0;
   }
 
-  // Phantom trail (pour rendu différé). On garde quelques échantillons.
-  if (eff.visual.phantomDelayMs) {
+  if (sEff.visual.phantomDelayMs) {
     world.phantomTrail.unshift({ tip: { ...tip }, pivot: { ...pivot }, ts: world.nowMs });
-    // Garde uniquement PHANTOM_BUFFER_MS d'historique.
     while (
       world.phantomTrail.length > 1 &&
       world.phantomTrail[world.phantomTrail.length - 1].ts < world.nowMs - PHANTOM_BUFFER_MS
@@ -105,14 +81,12 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     world.phantomTrail.length = 0;
   }
 
-  // Reset hitsThisRotation à chaque tour complet — sert au doubleHitPerRotation.
   if (Math.floor(a0 / Math.PI) !== Math.floor(a1 / Math.PI) && a1 < a0) {
     world.sword.hitsThisRotation.clear();
   }
 
-  // Collisions par sweep angulaire.
-  const halfWidth = eff.width / 2;
-  const reach = eff.length + halfWidth;
+  const halfWidth = sEff.width / 2;
+  const reach = sEff.length + halfWidth;
   const killedIds: number[] = [];
 
   for (const mob of world.mobs) {
@@ -138,48 +112,41 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     }
     if (angDist > angR) continue;
 
-    // Cooldown anti multi-hit (par mob) — sauf pierce (T5 portée) ou
-    // si c'est le 2e hit de la rotation autorisé par doubleHit (T4 portée).
     const lastHit = world.sword.lastHits.get(mob.id) ?? -Infinity;
-    const cooldownOver = world.nowMs - lastHit >= eff.hitCooldownMs;
-
-    if (!eff.effects.pierce && !cooldownOver) {
+    const cooldownOver = world.nowMs - lastHit >= sEff.hitCooldownMs;
+    if (!sEff.effects.pierce && !cooldownOver) {
       if (
-        eff.effects.doubleHitPerRotation &&
+        sEff.effects.doubleHitPerRotation &&
         !world.sword.hitsThisRotation.has(mob.id)
       ) {
-        // Autorise un second hit par rotation.
+        // OK : second hit autorisé.
       } else {
         continue;
       }
     }
 
-    if (!eff.effects.pierce) {
-      world.sword.lastHits.set(mob.id, world.nowMs);
-    }
+    if (!sEff.effects.pierce) world.sword.lastHits.set(mob.id, world.nowMs);
     world.sword.hitsThisRotation.add(mob.id);
 
-    // Dégâts (+ éventuel crit).
-    const { crit, mult } = rollCrit(eff);
-    const damage = eff.damage * mult;
+    const { crit, mult } = rollCrit(sEff);
+    const weakMult = world.nowMs < mob.weakenedUntilMs ? mob.weakenMultiplier : 1;
+    const damage = sEff.damage * mult * weakMult;
     mob.hp -= damage;
 
-    // Knockback (vitesse T4/T5).
-    if (eff.effects.knockbackPx) {
-      applyKnockback(mob, pivot, eff.effects.knockbackPx);
+    if (sEff.effects.knockbackPx) {
+      applyKnockback(mob, pivot, sEff.effects.knockbackPx);
     }
 
     if (mob.hp <= 0) {
       killedIds.push(mob.id);
-      onMobKilled(world, mob, crit, eff, hooks);
+      onMobKilledBySword(world, mob, crit, sEff, hooks);
     } else {
-      // Popup de dégâts non-létal (rare car HP=1 par défaut).
       world.popups.push({
         pos: { x: mob.pos.x, y: mob.pos.y },
         text: crit ? `CRIT ${Math.floor(damage)}` : `${Math.floor(damage)}`,
         lifeMs: 500,
         ageMs: 0,
-        color: eff.effects.popupColor ?? "#ffe18a",
+        color: sEff.effects.popupColor ?? "#ffe18a",
         size: crit ? 26 : 18,
       });
     }
@@ -191,11 +158,11 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     for (const id of killedIds) world.sword.lastHits.delete(id);
   }
 
-  // 5'. Aura cinétique (vitesse T5) : zoneDamage continu dans l'anneau.
-  if (eff.effects.zoneDamagePerSec) {
-    const auraRadius = eff.length + halfWidth;
-    const auraInner = Math.max(0, eff.length - 30);
-    const damageThisTick = eff.effects.zoneDamagePerSec * dtSec;
+  // Aura cinétique (vitesse T5).
+  if (sEff.effects.zoneDamagePerSec) {
+    const auraRadius = sEff.length + halfWidth;
+    const auraInner = Math.max(0, sEff.length - 30);
+    const damageThisTick = sEff.effects.zoneDamagePerSec * dtSec;
     const zoneKilled: number[] = [];
     for (const mob of world.mobs) {
       if (mob.hp <= 0) continue;
@@ -206,7 +173,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
       mob.hp -= damageThisTick;
       if (mob.hp <= 0) {
         zoneKilled.push(mob.id);
-        onMobKilled(world, mob, false, eff, hooks);
+        onMobKilledBySword(world, mob, false, sEff, hooks);
       }
     }
     if (zoneKilled.length > 0) {
@@ -216,7 +183,12 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     }
   }
 
-  // Vieillissement particules.
+  /* ----- ARC ----- */
+
+  tickBow(world, dtMs, hooks);
+
+  /* ----- Vieillissement particules / popups / trail ----- */
+
   for (const p of world.particles) {
     p.ageMs += dtMs;
     p.pos.x += p.vel.x * dtSec;
@@ -233,34 +205,29 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   world.trail = world.trail.filter((t) => t.ageMs < TRAIL_LIFE_MS);
 }
 
-function onMobKilled(world: World, mob: Mob, crit: boolean, eff: typeof world.sword.effective, hooks: TickHooks) {
-  // Screen shake.
-  const shakeMult = eff.effects.screenShakeMultiplier ?? 1;
+function onMobKilledBySword(world: World, mob: Mob, crit: boolean, sEff: typeof world.sword.effective, hooks: TickHooks) {
+  const shakeMult = sEff.effects.screenShakeMultiplier ?? 1;
   world.screenShake = Math.max(world.screenShake, BALANCE.juice.screenShakeOnKill * shakeMult);
 
-  // Hit-stop (cooldown global) + multiplicateur par tier.
-  const hitStopMult = eff.effects.hitStopMultiplier ?? 1;
+  const hitStopMult = sEff.effects.hitStopMultiplier ?? 1;
   if (world.nowMs - world.lastHitStopAt >= BALANCE.juice.hitStopCooldownMs) {
     world.hitStopMs = Math.max(world.hitStopMs, BALANCE.juice.hitStopOnKillMs * hitStopMult);
     world.lastHitStopAt = world.nowMs;
   }
 
-  // Flash blanc bref si crit + flag.
-  if (crit && eff.visual.whiteFlashOnCrit) {
+  if (crit && sEff.visual.whiteFlashOnCrit) {
     world.flashMs = Math.max(world.flashMs, 80);
   }
 
-  // Popup de kill (couleur selon tier).
   world.popups.push({
     pos: { x: mob.pos.x, y: mob.pos.y },
     text: crit ? `CRIT` : `+1`,
     lifeMs: BALANCE.juice.popupLifeMs,
     ageMs: 0,
-    color: eff.effects.popupColor ?? "#ffe18a",
+    color: sEff.effects.popupColor ?? "#ffe18a",
     size: crit ? 28 : 20,
   });
 
-  // Particules.
   const count = BALANCE.juice.particlesPerKill;
   for (let i = 0; i < count; i++) {
     const a = (i / count) * TWO_PI + Math.random() * 0.3;
@@ -274,23 +241,16 @@ function onMobKilled(world: World, mob: Mob, crit: boolean, eff: typeof world.sw
     });
   }
 
-  // Explosion (dégâts T5).
-  if (eff.effects.explosionRadius && eff.effects.explosionDamageRatio) {
-    const r = eff.effects.explosionRadius;
-    const ratio = eff.effects.explosionDamageRatio;
-    const damage = eff.damage * ratio;
+  if (sEff.effects.explosionRadius && sEff.effects.explosionDamageRatio) {
+    const r = sEff.effects.explosionRadius;
+    const ratio = sEff.effects.explosionDamageRatio;
+    const damage = sEff.damage * ratio;
     const chained = triggerExplosion(world, mob.pos, damage, r, 0);
-    world.shockwaves.push({
-      pos: { ...mob.pos },
-      radius: 0,
-      ageMs: 0,
-      lifeMs: 280,
-    });
+    world.shockwaves.push({ pos: { ...mob.pos }, radius: 0, ageMs: 0, lifeMs: 280 });
     if (chained.length > 0) {
       const chainedSet = new Set(chained.map((m) => m.id));
       world.mobs = world.mobs.filter((m) => !chainedSet.has(m.id));
       for (const id of chainedSet) world.sword.lastHits.delete(id);
-      // Compte chaque mob comme un kill séparé.
       for (let k = 0; k < chained.length; k++) hooks.onKill();
     }
   }

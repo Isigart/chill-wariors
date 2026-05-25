@@ -1,24 +1,32 @@
 import { useGame } from "./store";
-import { createProgression, type SwordProgression } from "@/game/progression";
-import { BRANCHES, type Branch } from "@/lib/balance";
+import { createProgression, type GameProgression } from "@/game/progression";
+import { BRANCHES_OF, WEAPONS, type WeaponKind } from "@/lib/balance";
 
-const KEY = "chill-warriors:v0.4";
-const LEGACY_KEYS = ["chill-warriors:v0.2", "chill-warriors:v0.3"];
-const VERSION = 3;
+const KEY = "chill-warriors:v0.5";
+const LEGACY_KEYS = ["chill-warriors:v0.2", "chill-warriors:v0.3", "chill-warriors:v0.4"];
+const VERSION = 4;
 
-interface SaveV3 {
-  v: 3;
+interface SaveV4 {
+  v: 4;
   kills: number;
-  progression: SwordProgression;
+  progression: GameProgression;
 }
 
-/** Lit le save (si présent et valide) et hydrate le store. */
-export function loadSave(): { progression: SwordProgression } | null {
+interface SaveV3Legacy {
+  v: 3;
+  kills?: number;
+  progression?: {
+    trainingBranch?: string;
+    xp?: Record<string, number>;
+    tier?: Record<string, number>;
+  };
+}
+
+export function loadSave(): { progression: GameProgression } | null {
   if (typeof window === "undefined") return null;
 
-  // Nettoyage des saves legacy (v0.2 / v0.3) — schéma incompatible.
-  // On les supprime au passage pour ne pas polluer localStorage.
-  for (const lk of LEGACY_KEYS) {
+  // Nettoyage des saves legacy v0.2 / v0.3.
+  for (const lk of ["chill-warriors:v0.2", "chill-warriors:v0.3"]) {
     try {
       window.localStorage.removeItem(lk);
     } catch {
@@ -28,30 +36,60 @@ export function loadSave(): { progression: SwordProgression } | null {
 
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SaveV3;
-    if (parsed.v !== VERSION) return null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as SaveV4;
+      if (parsed.v === VERSION) {
+        const prog = sanitize(parsed.progression);
+        useGame.getState().hydrate({ kills: parsed.kills ?? 0, progression: prog });
+        return { progression: prog };
+      }
+    }
 
-    const prog = sanitizeProgression(parsed.progression);
-    useGame.getState().hydrate({
-      kills: parsed.kills ?? 0,
-      progression: prog,
-    });
-    return { progression: prog };
+    // Migration v0.4 → v0.5 : on garde l'épée, on bascule sur la nouvelle shape.
+    const legacyRaw = window.localStorage.getItem("chill-warriors:v0.4");
+    if (legacyRaw) {
+      try {
+        const legacy = JSON.parse(legacyRaw) as SaveV3Legacy;
+        if (legacy.v === 3) {
+          const fresh = createProgression();
+          const swordXp = legacy.progression?.xp ?? {};
+          const swordTier = legacy.progression?.tier ?? {};
+          for (const b of BRANCHES_OF.sword) {
+            const k = b as string;
+            const x = typeof swordXp[k] === "number" ? swordXp[k] : 0;
+            const t = typeof swordTier[k] === "number" ? swordTier[k] : 0;
+            fresh.weapons.sword.xp[k] = Math.max(0, x);
+            fresh.weapons.sword.tier[k] = Math.max(0, Math.min(5, Math.floor(t)));
+          }
+          if (legacy.progression?.trainingBranch && (BRANCHES_OF.sword as readonly string[]).includes(legacy.progression.trainingBranch)) {
+            fresh.trainingWeapon = "sword";
+            fresh.trainingBranch = legacy.progression.trainingBranch;
+          }
+          useGame.getState().hydrate({ kills: legacy.kills ?? 0, progression: fresh });
+          // Bascule sur la nouvelle clé.
+          try {
+            window.localStorage.setItem(KEY, JSON.stringify({ v: VERSION, kills: legacy.kills ?? 0, progression: fresh }));
+            window.localStorage.removeItem("chill-warriors:v0.4");
+          } catch {
+            /* noop */
+          }
+          return { progression: fresh };
+        }
+      } catch {
+        /* noop */
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }
 }
 
-/** Persiste l'état du store. */
 export function persistFromStore() {
   if (typeof window === "undefined") return;
   const s = useGame.getState();
-  const data: SaveV3 = {
-    v: VERSION,
-    kills: s.kills,
-    progression: s.progression,
-  };
+  const data: SaveV4 = { v: VERSION, kills: s.kills, progression: s.progression };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));
   } catch {
@@ -69,26 +107,38 @@ export function clearSave() {
   }
 }
 
-/** Valide / corrige une progression chargée. Évite les NaN, branches inconnues. */
-function sanitizeProgression(input: unknown): SwordProgression {
+function sanitize(input: unknown): GameProgression {
   const def = createProgression();
   if (!input || typeof input !== "object") return def;
-  const i = input as Partial<SwordProgression>;
-  const trainingBranch: Branch =
-    BRANCHES.includes(i.trainingBranch as Branch) ? (i.trainingBranch as Branch) : def.trainingBranch;
-  const xp = { ...def.xp };
-  const tier = { ...def.tier };
-  if (i.xp && typeof i.xp === "object") {
-    for (const b of BRANCHES) {
-      const v = (i.xp as Record<string, unknown>)[b];
-      if (typeof v === "number" && v >= 0 && Number.isFinite(v)) xp[b] = v;
+  const i = input as Partial<GameProgression>;
+
+  const trainingWeapon: WeaponKind =
+    WEAPONS.includes(i.trainingWeapon as WeaponKind) ? (i.trainingWeapon as WeaponKind) : def.trainingWeapon;
+  const branches = BRANCHES_OF[trainingWeapon] as readonly string[];
+  const trainingBranch = branches.includes(i.trainingBranch as string)
+    ? (i.trainingBranch as string)
+    : (BRANCHES_OF[trainingWeapon][0] as string);
+
+  const result: GameProgression = {
+    trainingWeapon,
+    trainingBranch,
+    weapons: {
+      sword: { xp: { ...def.weapons.sword.xp }, tier: { ...def.weapons.sword.tier } },
+      bow: { xp: { ...def.weapons.bow.xp }, tier: { ...def.weapons.bow.tier } },
+    },
+  };
+
+  for (const w of WEAPONS) {
+    const src = i.weapons?.[w];
+    if (!src || typeof src !== "object") continue;
+    for (const b of BRANCHES_OF[w]) {
+      const bk = b as string;
+      const x = (src.xp as Record<string, unknown> | undefined)?.[bk];
+      const t = (src.tier as Record<string, unknown> | undefined)?.[bk];
+      if (typeof x === "number" && x >= 0 && Number.isFinite(x)) result.weapons[w].xp[bk] = x;
+      if (typeof t === "number" && t >= 0 && t <= 5 && Number.isInteger(t)) result.weapons[w].tier[bk] = t;
     }
   }
-  if (i.tier && typeof i.tier === "object") {
-    for (const b of BRANCHES) {
-      const v = (i.tier as Record<string, unknown>)[b];
-      if (typeof v === "number" && v >= 0 && v <= 5 && Number.isInteger(v)) tier[b] = v;
-    }
-  }
-  return { trainingBranch, xp, tier };
+
+  return result;
 }

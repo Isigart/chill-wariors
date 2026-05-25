@@ -1,12 +1,6 @@
 import { BALANCE } from "@/lib/balance";
 import type { World } from "./types";
 
-/**
- * Spawn continu : on accumule un budget proportionnel à dt et on spawn
- * un mob entier à chaque fois que l'accumulateur dépasse 1.
- * Les mobs ne scalent pas (1 HP, 60 px/s) — le challenge vient de
- * la densité au plus que de la stat des mobs.
- */
 export function tickSpawn(world: World, dtMs: number) {
   const dtSec = dtMs / 1000;
   world.spawnAccum += dtSec * BALANCE.mob.spawnRatePerSec;
@@ -34,5 +28,7 @@ function spawnOneMob(world: World) {
     maxHp: BALANCE.mob.hp,
     radius: BALANCE.mob.radius,
     speed: BALANCE.mob.speed,
+    weakenedUntilMs: -Infinity,
+    weakenMultiplier: 1,
   });
 }
