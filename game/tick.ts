@@ -39,11 +39,17 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     mob.pos.y += (dy / dist) * mob.speed * dtSec;
   }
 
-  /* ----- ÉPÉE ----- */
+  /* ----- ÉPÉE (équipée seulement) ----- */
 
+  const swordActive = world.equipped === "sword";
   const sEff = world.sword.effective;
+  if (!swordActive) {
+    // Décay des trails / phantom pour éviter qu'ils restent à l'écran après switch.
+    world.trail.length = 0;
+    world.phantomTrail.length = 0;
+  }
   const a0 = world.sword.angle;
-  const a1 = (a0 + sEff.rotationSpeed * dtSec) % TWO_PI;
+  const a1 = swordActive ? (a0 + sEff.rotationSpeed * dtSec) % TWO_PI : a0;
   world.sword.angle = a1;
   const deltaA = ((a1 - a0) % TWO_PI + TWO_PI) % TWO_PI;
 
@@ -52,7 +58,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     y: py + Math.sin(a1) * sEff.length,
   };
 
-  if (sEff.visual.shockwaveOnRotation) {
+  if (swordActive && sEff.visual.shockwaveOnRotation) {
     const angleSinceLast = ((a1 - world.sword.lastShockwaveAngle) % TWO_PI + TWO_PI) % TWO_PI;
     if (angleSinceLast >= Math.PI) {
       world.sword.lastShockwaveAngle = a1;
@@ -60,7 +66,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     }
   }
 
-  if (sEff.visual.trail && sEff.visual.trail > 0) {
+  if (swordActive && sEff.visual.trail && sEff.visual.trail > 0) {
     const last = world.trail[0];
     if (!last || last.ageMs >= TRAIL_SAMPLE_MS) {
       world.trail.unshift({ tip: { ...tip }, pivot: { ...pivot }, ageMs: 0 });
@@ -69,7 +75,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     world.trail.length = 0;
   }
 
-  if (sEff.visual.phantomDelayMs) {
+  if (swordActive && sEff.visual.phantomDelayMs) {
     world.phantomTrail.unshift({ tip: { ...tip }, pivot: { ...pivot }, ts: world.nowMs });
     while (
       world.phantomTrail.length > 1 &&
@@ -89,7 +95,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   const reach = sEff.length + halfWidth;
   const killedIds: number[] = [];
 
-  for (const mob of world.mobs) {
+  if (swordActive) for (const mob of world.mobs) {
     if (mob.hp <= 0) continue;
 
     const dx = mob.pos.x - px;
@@ -159,7 +165,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   }
 
   // Aura cinétique (vitesse T5).
-  if (sEff.effects.zoneDamagePerSec) {
+  if (swordActive && sEff.effects.zoneDamagePerSec) {
     const auraRadius = sEff.length + halfWidth;
     const auraInner = Math.max(0, sEff.length - 30);
     const damageThisTick = sEff.effects.zoneDamagePerSec * dtSec;

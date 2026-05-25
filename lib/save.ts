@@ -62,7 +62,7 @@ export function loadSave(): { progression: GameProgression } | null {
             fresh.weapons.sword.tier[k] = Math.max(0, Math.min(5, Math.floor(t)));
           }
           if (legacy.progression?.trainingBranch && (BRANCHES_OF.sword as readonly string[]).includes(legacy.progression.trainingBranch)) {
-            fresh.trainingWeapon = "sword";
+            fresh.equipped = "sword";
             fresh.trainingBranch = legacy.progression.trainingBranch;
           }
           useGame.getState().hydrate({ kills: legacy.kills ?? 0, progression: fresh });
@@ -112,15 +112,18 @@ function sanitize(input: unknown): GameProgression {
   if (!input || typeof input !== "object") return def;
   const i = input as Partial<GameProgression>;
 
-  const trainingWeapon: WeaponKind =
-    WEAPONS.includes(i.trainingWeapon as WeaponKind) ? (i.trainingWeapon as WeaponKind) : def.trainingWeapon;
-  const branches = BRANCHES_OF[trainingWeapon] as readonly string[];
+  // Compat : ancien champ `trainingWeapon` est utilisé comme fallback de `equipped`.
+  const rawEquipped = (i as { equipped?: unknown; trainingWeapon?: unknown }).equipped
+    ?? (i as { trainingWeapon?: unknown }).trainingWeapon;
+  const equipped: WeaponKind =
+    WEAPONS.includes(rawEquipped as WeaponKind) ? (rawEquipped as WeaponKind) : def.equipped;
+  const branches = BRANCHES_OF[equipped] as readonly string[];
   const trainingBranch = branches.includes(i.trainingBranch as string)
     ? (i.trainingBranch as string)
-    : (BRANCHES_OF[trainingWeapon][0] as string);
+    : (BRANCHES_OF[equipped][0] as string);
 
   const result: GameProgression = {
-    trainingWeapon,
+    equipped,
     trainingBranch,
     weapons: {
       sword: { xp: { ...def.weapons.sword.xp }, tier: { ...def.weapons.sword.tier } },

@@ -9,6 +9,7 @@ export function createWorld(w: number, h: number, prog: GameProgression): World 
   return {
     ctx: { mode: "idle", modifiers: {} },
     player: { pos: { x: w / 2, y: h / 2 } },
+    equipped: prog.equipped,
     sword: {
       angle: 0,
       lastHits: new Map(),

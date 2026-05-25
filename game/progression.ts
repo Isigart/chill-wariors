@@ -17,9 +17,11 @@ export interface WeaponProgression {
   tier: Record<string, number>;
 }
 
-/** Progression GLOBALE du jeu : armes + sélection de training. */
+/** Progression GLOBALE du jeu : armes + sélection de training + arme équipée. */
 export interface GameProgression {
-  trainingWeapon: WeaponKind;
+  /** Arme actuellement équipée (1 seule active à la fois en v0.5). */
+  equipped: WeaponKind;
+  /** Branche entraînée pour l'arme équipée. */
   trainingBranch: string;
   weapons: Record<WeaponKind, WeaponProgression>;
 }
@@ -62,7 +64,7 @@ function emptyWeaponProg(kind: WeaponKind): WeaponProgression {
 
 export function createProgression(): GameProgression {
   return {
-    trainingWeapon: "sword",
+    equipped: "sword",
     trainingBranch: "speed",
     weapons: {
       sword: emptyWeaponProg("sword"),
@@ -73,12 +75,15 @@ export function createProgression(): GameProgression {
 
 /* ---------- Mutations ---------- */
 
-/** Change la sélection de training (weapon + branch). Sans coût. */
-export function setTraining(prog: GameProgression, weapon: WeaponKind, branch: string) {
+/**
+ * Switch d'arme : équipe `weapon` et met à jour la branche entraînée.
+ * Si `branch` est omis, prend la première branche de l'arme.
+ */
+export function setTraining(prog: GameProgression, weapon: WeaponKind, branch?: string) {
   const branches = BRANCHES_OF[weapon] as readonly string[];
-  if (!branches.includes(branch)) return;
-  prog.trainingWeapon = weapon;
-  prog.trainingBranch = branch;
+  const targetBranch = branch && branches.includes(branch) ? branch : branches[0];
+  prog.equipped = weapon;
+  prog.trainingBranch = targetBranch;
 }
 
 /**
@@ -89,7 +94,7 @@ export function awardXp(
   prog: GameProgression,
   amount: number,
 ): { weapon: WeaponKind; branch: string; tier: number } | null {
-  const w = prog.trainingWeapon;
+  const w = prog.equipped;
   const b = prog.trainingBranch;
   const wp = prog.weapons[w];
   if (wp.tier[b] >= MAX_TIER) return null;

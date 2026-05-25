@@ -78,8 +78,10 @@ export default function GameCanvas() {
     };
   }, []);
 
-  // Recache les stats effectives des 2 armes quand leurs tiers changent.
+  // Recache les stats effectives des 2 armes quand leurs tiers changent,
+  // ET sync l'arme équipée du store vers le world.
   const lastTiersKeyRef = useRef<string>("");
+  const lastEquippedRef = useRef<string>("");
   useEffect(() => {
     const unsub = useGame.subscribe((s) => {
       const w = worldRef.current;
@@ -89,10 +91,15 @@ export default function GameCanvas() {
       const key =
         `${swT.speed ?? 0}-${swT.range ?? 0}-${swT.damage ?? 0}` +
         `|${bwT.cadence ?? 0}-${bwT.pierce ?? 0}-${bwT.multi ?? 0}`;
-      if (key === lastTiersKeyRef.current) return;
-      lastTiersKeyRef.current = key;
-      w.sword.effective = getEffectiveSwordStats(s.progression);
-      w.bow.effective = getEffectiveBowStats(s.progression);
+      if (key !== lastTiersKeyRef.current) {
+        lastTiersKeyRef.current = key;
+        w.sword.effective = getEffectiveSwordStats(s.progression);
+        w.bow.effective = getEffectiveBowStats(s.progression);
+      }
+      if (s.progression.equipped !== lastEquippedRef.current) {
+        lastEquippedRef.current = s.progression.equipped;
+        w.equipped = s.progression.equipped;
+      }
     });
     return unsub;
   }, []);

@@ -14,6 +14,7 @@ type GameStore = {
 
   addKill: () => void;
   setTraining: (weapon: WeaponKind, branch: string) => void;
+  setEquipped: (weapon: WeaponKind) => void;
   awardXp: (amount: number) => { weapon: WeaponKind; branch: string; tier: number } | null;
   consumeLastUnlocked: () => void;
 
@@ -31,6 +32,12 @@ export const useGame = create<GameStore>((set, get) => ({
     const prev = get().progression;
     const next: GameProgression = clone(prev);
     setTrainingPure(next, weapon, branch);
+    set({ progression: next });
+  },
+  setEquipped: (weapon) => {
+    const prev = get().progression;
+    const next: GameProgression = clone(prev);
+    setTrainingPure(next, weapon);
     set({ progression: next });
   },
 
@@ -52,7 +59,7 @@ export const useGame = create<GameStore>((set, get) => ({
 
 function clone(p: GameProgression): GameProgression {
   return {
-    trainingWeapon: p.trainingWeapon,
+    equipped: p.equipped,
     trainingBranch: p.trainingBranch,
     weapons: {
       sword: { xp: { ...p.weapons.sword.xp }, tier: { ...p.weapons.sword.tier } },

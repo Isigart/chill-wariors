@@ -1,4 +1,5 @@
 import type { EffectiveBowStats, EffectiveSwordStats } from "./progression";
+import type { WeaponKind } from "@/lib/balance";
 
 export type Vec2 = { x: number; y: number };
 
@@ -92,6 +93,8 @@ export interface Shockwave {
 export interface World {
   ctx: CombatContext;
   player: Player;
+  /** Arme actuellement active. Seules les armes équipées tickent. */
+  equipped: WeaponKind;
   sword: Sword;
   bow: Bow;
   mobs: Mob[];

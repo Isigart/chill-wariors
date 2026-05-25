@@ -56,7 +56,8 @@ export default function SkillTreeHUD() {
         <WeaponRow
           key={weapon}
           weapon={weapon}
-          training={progression.trainingWeapon === weapon ? progression.trainingBranch : null}
+          equipped={progression.equipped === weapon}
+          training={progression.equipped === weapon ? progression.trainingBranch : null}
           onSelect={(branch) => setTraining(weapon, branch)}
           flashing={flashing?.weapon === weapon ? flashing : null}
         />
@@ -76,6 +77,7 @@ export default function SkillTreeHUD() {
 
 function WeaponRow(props: {
   weapon: WeaponKind;
+  equipped: boolean;
   training: string | null;
   onSelect: (branch: string) => void;
   flashing: { branch: string; tier: number; label: string } | null;
@@ -83,14 +85,24 @@ function WeaponRow(props: {
   const progression = useGame((s) => s.progression);
   const wTint = WEAPON_TINT[props.weapon];
   const branches = BRANCHES_OF[props.weapon] as readonly string[];
+  // Une arme non équipée est rendue avec moins d'opacité — on voit qu'elle dort.
+  const rowOpacity = props.equipped ? 1 : 0.45;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1">
-      <div
-        className="w-14 text-[10px] font-bold tracking-[0.25em]"
-        style={{ color: wTint }}
-      >
-        {WEAPON_LABEL[props.weapon]}
+    <div className="flex items-center gap-2 px-3 py-1" style={{ opacity: rowOpacity }}>
+      <div className="flex w-20 flex-col">
+        <div
+          className="text-[10px] font-bold tracking-[0.25em]"
+          style={{ color: wTint }}
+        >
+          {WEAPON_LABEL[props.weapon]}
+        </div>
+        <div
+          className="text-[8px] tracking-[0.2em]"
+          style={{ color: props.equipped ? "#a8e6a8" : "rgba(255,255,255,0.35)" }}
+        >
+          {props.equipped ? "● ÉQUIPÉE" : "○ DORT"}
+        </div>
       </div>
       <div className="flex flex-wrap items-stretch gap-2">
         {branches.map((branch) => {

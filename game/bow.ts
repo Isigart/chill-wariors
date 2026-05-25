@@ -12,11 +12,12 @@ const TWO_PI = Math.PI * 2;
  */
 export function tickBow(world: World, dtMs: number, hooks: TickHooks) {
   const eff = world.bow.effective;
+  const bowEquipped = world.equipped === "bow";
 
   // Cadence : si T5 cadence (continuousStream), on tire ~16 Hz peu importe le fireRate.
   const effectiveFireRate = eff.effects.continuousStream ? 60 : eff.fireRateMs;
 
-  if (world.nowMs - world.bow.lastShotAt >= effectiveFireRate) {
+  if (bowEquipped && world.nowMs - world.bow.lastShotAt >= effectiveFireRate) {
     const target = findNearestMob(world);
     if (target) {
       fireVolley(world, target);
@@ -27,16 +28,18 @@ export function tickBow(world: World, dtMs: number, hooks: TickHooks) {
     }
   }
 
-  // Process pending shots.
+  // Process pending shots (même si arc plus équipé : volée différée résolue).
   for (let i = world.pendingShots.length - 1; i >= 0; i--) {
     const ps = world.pendingShots[i];
     if (ps.atMs > world.nowMs) continue;
-    const t = findNearestMob(world);
-    if (t) fireVolley(world, t);
+    if (bowEquipped) {
+      const t = findNearestMob(world);
+      if (t) fireVolley(world, t);
+    }
     world.pendingShots.splice(i, 1);
   }
 
-  // Update arrows.
+  // Les flèches en vol continuent même après désequipement (cleanup naturel).
   tickArrows(world, dtMs, hooks);
 }
 

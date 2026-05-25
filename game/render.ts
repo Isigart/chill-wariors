@@ -45,8 +45,10 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   }
   ctx.globalAlpha = 1;
 
+  const swordEquipped = world.equipped === "sword";
+
   // 4. Anneau (vitesse T3+).
-  if (eff.visual.ring && eff.visual.ring !== "none") {
+  if (swordEquipped && eff.visual.ring && eff.visual.ring !== "none") {
     const dense = eff.visual.ring === "dense";
     ctx.save();
     ctx.lineWidth = dense ? eff.width * 1.4 : eff.width * 0.8;
@@ -62,7 +64,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   }
 
   // 5. Particules orbitales (vitesse T5).
-  if (eff.visual.orbitalParticles) {
+  if (swordEquipped && eff.visual.orbitalParticles) {
     const orbitR = eff.length;
     const t = world.nowMs / 200;
     for (let i = 0; i < 10; i++) {
@@ -79,7 +81,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   }
 
   // 6. Phantom blade (portée T4+) : rend la pointe ~50ms en arrière.
-  if (eff.visual.phantomDelayMs && world.phantomTrail.length > 0) {
+  if (swordEquipped && eff.visual.phantomDelayMs && world.phantomTrail.length > 0) {
     const targetTs = world.nowMs - eff.visual.phantomDelayMs;
     // Trouve l'échantillon le plus proche.
     let sample = world.phantomTrail[0];
@@ -102,7 +104,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
 
   // 7. Trail (vitesse T1+).
   const trailIntensity = eff.visual.trail ?? 0;
-  if (trailIntensity > 0 && world.trail.length > 1) {
+  if (swordEquipped && trailIntensity > 0 && world.trail.length > 1) {
     ctx.lineCap = "round";
     const trailColor = eff.visual.trailColor ?? "#7fd0ff";
     for (const t of world.trail) {
@@ -125,21 +127,23 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   ctx.arc(px, py, BALANCE.player.radius, 0, TWO_PI);
   ctx.fill();
 
-  // 9. Lame principale.
-  drawBlade(ctx, px, py, tipX, tipY, eff.width, eff.visual, tint);
+  // 9. Lame principale (épée équipée seulement).
+  if (swordEquipped) {
+    drawBlade(ctx, px, py, tipX, tipY, eff.width, eff.visual, tint);
 
-  // Pointe lumineuse.
-  ctx.fillStyle = eff.visual.permanentFire
-    ? "#fff1cc"
-    : tint > 0
-    ? "#ffd6d6"
-    : "#fff8c4";
-  ctx.beginPath();
-  ctx.arc(tipX, tipY, eff.width * 0.7, 0, TWO_PI);
-  ctx.fill();
+    // Pointe lumineuse.
+    ctx.fillStyle = eff.visual.permanentFire
+      ? "#fff1cc"
+      : tint > 0
+      ? "#ffd6d6"
+      : "#fff8c4";
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, eff.width * 0.7, 0, TWO_PI);
+    ctx.fill();
+  }
 
   // Étincelles permanentes pour feu (dégâts T5).
-  if (eff.visual.permanentFire && Math.random() < 0.6) {
+  if (swordEquipped && eff.visual.permanentFire && Math.random() < 0.6) {
     for (let i = 0; i < 2; i++) {
       world.particles.push({
         pos: { x: tipX, y: tipY },
