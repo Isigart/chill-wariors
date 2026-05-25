@@ -178,6 +178,14 @@ export const BALANCE = {
     maxDifficultyTier: 50,
   },
 
+  /** Drop des Clefs de Mine (v0.8 beta) : décisions design Pile A. */
+  keys: {
+    /** Taux de drop par mob tué en mode idle. */
+    mineKeyDropRate: 0.005,
+    /** Gating : drops désactivés tant qu'aucune arme n'est intégralement T5/T5/T5. */
+    requireAnyWeaponMaxed: true,
+  },
+
   instance: {
     playerHpMax: 100,
     /** Cooldown d'invulnérabilité après contact d'un golem (ms). */

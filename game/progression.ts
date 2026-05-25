@@ -122,6 +122,11 @@ export function maxedWeapons(prog: GameProgression): WeaponKind[] {
   return (["sword", "bow", "fireWand"] as WeaponKind[]).filter((w) => isWeaponMaxed(prog, w));
 }
 
+/** Au moins une arme maxée — gate du drop des Clefs de Mine. */
+export function anyWeaponMaxed(prog: GameProgression): boolean {
+  return (["sword", "bow", "fireWand"] as WeaponKind[]).some((w) => isWeaponMaxed(prog, w));
+}
+
 /* ---------- Mutations ---------- */
 
 /**

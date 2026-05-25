@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import {
+  anyWeaponMaxed,
   awardXp as awardXpPure,
   createProgression,
   isWeaponMaxed,
   setTraining as setTrainingPure,
   type GameProgression,
 } from "@/game/progression";
-import { BRANCHES_OF, TREMPAGE, type WeaponKind } from "@/lib/balance";
+import { BALANCE, BRANCHES_OF, TREMPAGE, type WeaponKind } from "@/lib/balance";
 
 export type GameMode = "idle" | "instance" | "altar";
 export type PanelKind = "none" | "inventory" | "dungeon";
@@ -34,8 +35,20 @@ type GameStore = {
   mithrilInRun: number;
   /** Vague courante de l'instance. */
   instanceWave: number;
-  /** Stock de clefs par arme (vide en v0.7 — pas encore de drop). */
+  /**
+   * Stock de Clefs d'arme (item narratif, drop garanti aux paliers de
+   * difficulté idle — v0.9). Permettra de débloquer une arme via son
+   * donjon dédié. Vide en v0.8 beta.
+   */
   keys: Record<WeaponKind, number>;
+  /**
+   * Clefs de Mine (ressource récurrente). Drop continu en idle à
+   * `BALANCE.keys.mineKeyDropRate`, gated par 1 arme T5/T5/T5.
+   * Une clef = une entrée dans la Mine de Mithril.
+   */
+  mineKeys: number;
+  /** Dernier drop de clef de mine (transitoire) — pour le HUD flash. */
+  lastMineKeyDropAt: number;
   /** Nb de tentatives de trempage effectuées dans la visite courante de l'autel. */
   trempageAttempts: number;
   /** Dernier résultat de trempage (transitoire, consommé par l'UI pour l'anim). */
@@ -57,6 +70,11 @@ type GameStore = {
   endRun: () => void;
   returnToIdle: () => void;
 
+  // --- Clefs de Mine ---
+  /** Tente un drop sur le mob qui vient de mourir en idle. */
+  rollMineKeyDrop: () => boolean;
+  addMineKey: (n?: number) => void;
+
   // --- Trempage ---
   attemptTrempage: (weapon: WeaponKind, branch: string, mithrilCost: number) => TrempageResult | null;
   consumeLastTrempage: () => void;
@@ -68,10 +86,11 @@ type GameStore = {
   // --- Debug ---
   devMaxAllWeapons: () => void;
   devGiveMithril: (amount: number) => void;
+  devGiveMineKeys: (amount: number) => void;
   devResetAll: () => void;
 
   hydrate: (s: Partial<Pick<GameStore,
-    "kills" | "progression" | "mithril" | "keys" | "mode"
+    "kills" | "progression" | "mithril" | "mineKeys" | "keys" | "mode"
   >>) => void;
 };
 
@@ -91,6 +110,8 @@ export const useGame = create<GameStore>((set, get) => ({
   mithrilInRun: 0,
   instanceWave: 1,
   keys: emptyKeys(),
+  mineKeys: 0,
+  lastMineKeyDropAt: 0,
   trempageAttempts: 0,
   lastTrempage: null,
   panel: "none",
@@ -123,14 +144,19 @@ export const useGame = create<GameStore>((set, get) => ({
 
   consumeLastUnlocked: () => set({ lastUnlocked: null }),
 
-  enterInstance: () =>
-    set((s) => ({
+  enterInstance: () => {
+    const s = get();
+    // Gating : nécessite 1 Clef de Mine.
+    if (s.mineKeys <= 0) return;
+    set({
       mode: "instance",
       playerHp: s.playerHpMax,
       mithrilInRun: 0,
       instanceWave: 1,
       panel: "none",
-    })),
+      mineKeys: s.mineKeys - 1,
+    });
+  },
 
   damagePlayer: (amount) =>
     set((s) => ({ playerHp: Math.max(0, s.playerHp - amount) })),
@@ -199,6 +225,18 @@ export const useGame = create<GameStore>((set, get) => ({
 
   consumeLastTrempage: () => set({ lastTrempage: null }),
 
+  rollMineKeyDrop: () => {
+    const s = get();
+    if (s.mode !== "idle") return false;
+    if (BALANCE.keys.requireAnyWeaponMaxed && !anyWeaponMaxed(s.progression)) return false;
+    if (Math.random() >= BALANCE.keys.mineKeyDropRate) return false;
+    set({ mineKeys: s.mineKeys + 1, lastMineKeyDropAt: Date.now() });
+    return true;
+  },
+
+  addMineKey: (n = 1) =>
+    set((s) => ({ mineKeys: s.mineKeys + n, lastMineKeyDropAt: Date.now() })),
+
   openPanel: (p) => set({ panel: p }),
   closePanel: () => set({ panel: "none" }),
 
@@ -218,6 +256,9 @@ export const useGame = create<GameStore>((set, get) => ({
 
   devGiveMithril: (amount) => set((s) => ({ mithril: s.mithril + amount })),
 
+  devGiveMineKeys: (amount) =>
+    set((s) => ({ mineKeys: s.mineKeys + amount, lastMineKeyDropAt: Date.now() })),
+
   devResetAll: () => {
     // Reset complet du store + suppression du save localStorage.
     set({
@@ -231,6 +272,8 @@ export const useGame = create<GameStore>((set, get) => ({
       mithrilInRun: 0,
       instanceWave: 1,
       keys: emptyKeys(),
+      mineKeys: 0,
+      lastMineKeyDropAt: 0,
       trempageAttempts: 0,
       lastTrempage: null,
       panel: "none",

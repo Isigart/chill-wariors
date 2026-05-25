@@ -12,6 +12,7 @@ export default function DevPanel() {
   const mode = useGame((s) => s.mode);
   const devMaxAllWeapons = useGame((s) => s.devMaxAllWeapons);
   const devGiveMithril = useGame((s) => s.devGiveMithril);
+  const devGiveMineKeys = useGame((s) => s.devGiveMineKeys);
   const devResetAll = useGame((s) => s.devResetAll);
 
   if (mode !== "idle") return null;
@@ -53,6 +54,12 @@ export default function DevPanel() {
             className="rounded border border-amber-400/30 bg-amber-400/[0.05] px-2 py-1 text-left text-[10px] text-amber-200 hover:border-amber-400/60 hover:bg-amber-400/[0.12]"
           >
             ✦✦ +10 000 mithril
+          </button>
+          <button
+            onClick={() => devGiveMineKeys(3)}
+            className="rounded border border-emerald-400/40 bg-emerald-400/[0.05] px-2 py-1 text-left text-[10px] text-emerald-200 hover:border-emerald-400/60 hover:bg-emerald-400/[0.12]"
+          >
+            ⚷ +3 clefs de mine
           </button>
           <button
             onClick={() => {

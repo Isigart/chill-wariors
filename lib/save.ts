@@ -2,20 +2,30 @@ import { useGame } from "./store";
 import { createProgression, type GameProgression } from "@/game/progression";
 import { BRANCHES_OF, WEAPONS, type WeaponKind } from "@/lib/balance";
 
-const KEY = "chill-warriors:v0.8";
+const KEY = "chill-warriors:v0.8b";
 const LEGACY_KEYS = [
   "chill-warriors:v0.2",
   "chill-warriors:v0.3",
   "chill-warriors:v0.4",
   "chill-warriors:v0.5",
   "chill-warriors:v0.7",
+  "chill-warriors:v0.8",
 ];
-const VERSION = 6;
+const VERSION = 7;
+
+interface SaveV7 {
+  v: 7;
+  kills: number;
+  progression: GameProgression;
+  mithril: number;
+  mineKeys: number;
+  keys?: Record<string, number>;
+}
 
 interface SaveV6 {
   v: 6;
   kills: number;
-  progression: GameProgression; // trempage est maintenant dans progression
+  progression: GameProgression;
   mithril: number;
   keys?: Record<string, number>;
 }
@@ -59,15 +69,44 @@ export function loadSave(): { progression: GameProgression } | null {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as SaveV6;
+      const parsed = JSON.parse(raw) as SaveV7;
       if (parsed.v === VERSION) {
         const prog = sanitize(parsed.progression);
         useGame.getState().hydrate({
           kills: parsed.kills ?? 0,
           progression: prog,
           mithril: typeof parsed.mithril === "number" ? Math.max(0, parsed.mithril) : 0,
+          mineKeys: typeof parsed.mineKeys === "number" ? Math.max(0, Math.floor(parsed.mineKeys)) : 0,
         });
         return { progression: prog };
+      }
+    }
+
+    // Migration v6 → v7 (ajoute mineKeys = 0).
+    const v06Raw = window.localStorage.getItem("chill-warriors:v0.8");
+    if (v06Raw) {
+      try {
+        const parsed = JSON.parse(v06Raw) as SaveV6;
+        if (parsed.v === 6) {
+          const prog = sanitize(parsed.progression);
+          useGame.getState().hydrate({
+            kills: parsed.kills ?? 0,
+            progression: prog,
+            mithril: typeof parsed.mithril === "number" ? Math.max(0, parsed.mithril) : 0,
+            mineKeys: 0,
+          });
+          try {
+            window.localStorage.setItem(KEY, JSON.stringify({
+              v: VERSION, kills: parsed.kills ?? 0, progression: prog, mithril: parsed.mithril ?? 0, mineKeys: 0,
+            }));
+            window.localStorage.removeItem("chill-warriors:v0.8");
+          } catch {
+            /* noop */
+          }
+          return { progression: prog };
+        }
+      } catch {
+        /* noop */
       }
     }
 
@@ -167,11 +206,12 @@ export function loadSave(): { progression: GameProgression } | null {
 export function persistFromStore() {
   if (typeof window === "undefined") return;
   const s = useGame.getState();
-  const data: SaveV6 = {
+  const data: SaveV7 = {
     v: VERSION,
     kills: s.kills,
     progression: s.progression,
     mithril: s.mithril,
+    mineKeys: s.mineKeys,
   };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));

@@ -266,5 +266,5 @@ function onMobKilledByArrow(world: World, mob: Mob, hooks: TickHooks, popupColor
       size: mob.isMajor ? 22 : 16,
     });
   }
-  hooks.onKill(mob.mithrilDrop);
+  hooks.onKill(mob.mithrilDrop, mob.pos);
 }

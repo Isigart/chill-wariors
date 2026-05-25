@@ -187,8 +187,8 @@ export interface World {
 }
 
 export interface TickHooks {
-  /** Appelé sur kill. En instance, `mithril` peut être > 0 si c'est un golem. */
-  onKill: (mithril?: number) => void;
+  /** Appelé sur kill. `mithril` > 0 pour golems. `pos` = position du mort (utile pour popups). */
+  onKill: (mithril?: number, pos?: Vec2) => void;
   /** Appelé quand le joueur prend un coup en instance. */
   onPlayerDamage?: (amount: number) => void;
   /** Appelé quand le joueur meurt (HP ≤ 0). */

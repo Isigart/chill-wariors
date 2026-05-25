@@ -283,9 +283,9 @@ function onMobKilledBySword(world: World, mob: Mob, crit: boolean, sEff: typeof 
       const chainedSet = new Set(chained.map((m) => m.id));
       world.mobs = world.mobs.filter((m) => !chainedSet.has(m.id));
       for (const id of chainedSet) world.sword.lastHits.delete(id);
-      for (const cm of chained) hooks.onKill(cm.mithrilDrop);
+      for (const cm of chained) hooks.onKill(cm.mithrilDrop, cm.pos);
     }
   }
 
-  hooks.onKill(mob.mithrilDrop);
+  hooks.onKill(mob.mithrilDrop, mob.pos);
 }

@@ -55,11 +55,27 @@ export default function GameCanvas() {
       // En mode altar : pas de tick combat, on garde la scène figée derrière la modale.
       if (s.mode !== "altar") {
         tickWorld(w, dt, {
-          onKill: (mithril) => {
+          onKill: (mithril, pos) => {
             s.addKill();
             s.awardXp(1);
             if (s.mode === "instance" && typeof mithril === "number" && mithril > 0) {
               s.addMithril(mithril);
+            }
+            // Drop des Clefs de Mine en idle (RNG, gated par 1 arme T5/T5/T5).
+            if (s.mode === "idle") {
+              const dropped = s.rollMineKeyDrop();
+              if (dropped && pos && w) {
+                w.popups.push({
+                  pos: { x: pos.x, y: pos.y - 18 },
+                  text: "⚷ CLEF DE MINE",
+                  lifeMs: 1800,
+                  ageMs: 0,
+                  color: "#ffe18a",
+                  size: 18,
+                });
+                // Petit shake symbolique pour signaler l'événement.
+                w.screenShake = Math.max(w.screenShake, 5);
+              }
             }
           },
           onPlayerDamage: (amount) => {

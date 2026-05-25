@@ -335,7 +335,7 @@ function detonate(
         }
       }
     }
-    hooks.onKill();
+    hooks.onKill(mob.mithrilDrop, mob.pos);
   }
   const deadIds = new Set(killedThisExplosion.map((m) => m.id));
   if (deadIds.size > 0) {
@@ -385,7 +385,7 @@ function tickBurn(world: World, dtMs: number, hooks: TickHooks) {
           }
         }
       }
-      hooks.onKill(mob.mithrilDrop);
+      hooks.onKill(mob.mithrilDrop, mob.pos);
     }
     const deadIds = new Set(killed.map((m) => m.id));
     world.mobs = world.mobs.filter((m) => !deadIds.has(m.id));
@@ -429,7 +429,7 @@ function tickGroundFires(world: World, dtMs: number, hooks: TickHooks) {
           size: mob.isMajor ? 22 : 16,
         });
       }
-      hooks.onKill(mob.mithrilDrop);
+      hooks.onKill(mob.mithrilDrop, mob.pos);
     }
     const deadIds = new Set(killed.map((m) => m.id));
     world.mobs = world.mobs.filter((m) => !deadIds.has(m.id));

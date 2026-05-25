@@ -21,6 +21,7 @@ export default function HUD() {
 
   const hpRatio = playerHpMax > 0 ? Math.max(0, playerHp / playerHpMax) : 0;
   const idleTier = idleMobStats(kills).tier;
+  const mineKeys = useGame((s) => s.mineKeys);
 
   return (
     <>
@@ -42,9 +43,8 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* En haut à droite : mithril (total live en instance). Le bouton mine
-          est maintenant dans l'onglet Donjon (NavTabs). */}
-      <div className="pointer-events-none absolute right-2 top-2 flex select-none flex-col items-end gap-1.5 font-mono sm:right-4 sm:top-4 sm:gap-2">
+      {/* En haut à droite : mithril (total live en instance) + clefs de mine. */}
+      <div className="pointer-events-none absolute right-2 top-2 flex select-none flex-col items-end gap-1 font-mono sm:right-4 sm:top-4 sm:gap-1.5">
         <div className="text-right">
           <div className="text-[9px] tracking-[0.3em] text-amber-300/60 sm:text-[10px]">MITHRIL</div>
           <div className="text-lg font-bold tabular-nums leading-none text-amber-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-2xl">
@@ -56,6 +56,14 @@ export default function HUD() {
             </div>
           )}
         </div>
+        {mode === "idle" && mineKeys > 0 && (
+          <div className="text-right">
+            <div className="text-[9px] tracking-[0.3em] text-emerald-300/60 sm:text-[10px]">CLEFS</div>
+            <div className="text-base font-bold tabular-nums leading-none text-emerald-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-xl">
+              ⚷ {mineKeys}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Centre-haut : indicateur de vague d'instance */}
