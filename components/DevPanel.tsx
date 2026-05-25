@@ -22,7 +22,7 @@ export default function DevPanel() {
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-[10px] tracking-[0.2em] text-white/40 hover:border-white/40 hover:text-white/70"
+          className="rounded-md border border-amber-100/15 bg-black/40 px-2 py-1 text-[10px] tracking-[0.2em] text-white/40 hover:border-amber-100/40 hover:text-white/70"
         >
           [DEV]
         </button>
@@ -39,7 +39,7 @@ export default function DevPanel() {
           </div>
           <button
             onClick={devMaxAllWeapons}
-            className="rounded border border-white/15 bg-white/[0.04] px-2 py-1 text-left text-[10px] text-white/80 hover:border-white/30 hover:bg-white/[0.1]"
+            className="rounded border border-amber-100/15 bg-amber-100/[0.04] px-2 py-1 text-left text-[10px] text-white/80 hover:border-amber-100/30 hover:bg-amber-100/[0.1]"
           >
             ⏩ Max toutes les armes (T5 partout)
           </button>

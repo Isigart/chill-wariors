@@ -55,7 +55,7 @@ export default function AltarUI() {
   const totalMithril = mithril + mithrilInRun;
 
   return (
-    <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/85 backdrop-blur-md">
+    <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-[#0f0805]/85 backdrop-blur-md">
       <div className="flex w-full max-w-2xl flex-col items-stretch gap-4 px-3 py-6 sm:gap-6 sm:px-6 sm:py-8">
         {/* En-tête */}
         <div className="text-center">
@@ -83,7 +83,7 @@ export default function AltarUI() {
         </div>
 
         {/* Indicateur tentatives + arme équipée */}
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-black/40 px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-100/10 bg-black/40 px-3 py-2 sm:px-4">
           <div className="font-mono text-[10px] tracking-[0.2em] sm:text-[11px] sm:tracking-[0.25em]">
             <span className="text-white/40">ARME&nbsp;:&nbsp;</span>
             <span style={{ color: WEAPON_TINT[equippedWeapon] }}>{WEAPON_LABEL[equippedWeapon]}</span>
@@ -98,7 +98,7 @@ export default function AltarUI() {
 
         {/* Liste des branches éligibles */}
         {eligible.length === 0 ? (
-          <div className="rounded-md border border-white/10 bg-black/40 px-4 py-6 text-center font-mono text-sm text-white/50">
+          <div className="rounded-md border border-amber-100/10 bg-black/40 px-4 py-6 text-center font-mono text-sm text-white/50">
             L'arme équipée ({WEAPON_LABEL[equippedWeapon]}) n'est pas maxée (T5
             sur ses 3 voies). Continue à entraîner — ou switch d'arme avant
             d'entrer dans la mine.
@@ -192,7 +192,7 @@ function BranchRow(props: {
   const max = Math.max(0, props.mithrilAvailable);
 
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 sm:px-4 sm:py-3">
+    <div className="rounded-md border border-amber-100/10 bg-amber-100/[0.03] px-3 py-2 sm:px-4 sm:py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-1">
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="font-mono text-[9px] tracking-[0.2em] sm:text-[10px] sm:tracking-[0.25em]" style={{ color: wTint }}>
@@ -226,7 +226,7 @@ function BranchRow(props: {
           value={injected}
           onChange={(e) => setInjected(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
           disabled={props.disabled}
-          className="w-14 shrink-0 rounded border border-white/15 bg-black/40 px-1.5 py-1 text-right font-mono text-[11px] tabular-nums text-amber-100 disabled:opacity-40 sm:w-20 sm:px-2 sm:text-xs"
+          className="w-14 shrink-0 rounded border border-amber-100/15 bg-black/40 px-1.5 py-1 text-right font-mono text-[11px] tabular-nums text-amber-100 disabled:opacity-40 sm:w-20 sm:px-2 sm:text-xs"
         />
         <button
           onClick={() => setInjected(Math.min(max, TREMPAGE.optimalMithril(target)))}

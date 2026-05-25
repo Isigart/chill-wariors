@@ -23,7 +23,7 @@ export default function DungeonPanel() {
   const dropRatePercent = (BALANCE.keys.mineKeyDropRate * 100).toFixed(2);
 
   return (
-    <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/85 backdrop-blur-md">
+    <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-[#0f0805]/85 backdrop-blur-md">
       <div className="flex w-full max-w-xl flex-col items-stretch gap-3 px-3 py-6 sm:gap-4 sm:px-6 sm:py-8">
         <div className="flex items-baseline justify-between">
           <div>
@@ -36,7 +36,7 @@ export default function DungeonPanel() {
           </div>
           <button
             onClick={closePanel}
-            className="rounded-md border border-white/20 bg-white/[0.05] px-3 py-1.5 font-mono text-xs font-bold tracking-[0.2em] text-white/80 transition hover:border-white/50 hover:text-white"
+            className="rounded-md border border-amber-100/20 bg-amber-100/[0.05] px-3 py-1.5 font-mono text-xs font-bold tracking-[0.2em] text-white/80 transition hover:border-amber-100/50 hover:text-white"
           >
             ✕ FERMER
           </button>
@@ -71,7 +71,7 @@ export default function DungeonPanel() {
         />
 
         {/* Etat du drop */}
-        <div className="rounded-md border border-white/10 bg-black/30 px-4 py-2 font-mono text-[10px] leading-relaxed text-white/55 sm:text-[11px]">
+        <div className="rounded-md border border-amber-100/10 bg-black/30 px-4 py-2 font-mono text-[10px] leading-relaxed text-white/55 sm:text-[11px]">
           {canDropKeys ? (
             <>
               <span className="text-emerald-300">●</span> Drop de Clef de Mine
@@ -87,7 +87,7 @@ export default function DungeonPanel() {
           )}
         </div>
 
-        <div className="rounded-md border border-white/10 bg-black/30 px-4 py-2 font-mono text-[10px] text-white/40 sm:text-[11px]">
+        <div className="rounded-md border border-amber-100/10 bg-black/30 px-4 py-2 font-mono text-[10px] text-white/40 sm:text-[11px]">
           Les futures armes débloquables (bouclier, grimoire) auront leur propre
           donjon-puzzle, accessible via une Clef d'arme dropée à un palier de
           difficulté idle — distinct des Clefs de Mine.

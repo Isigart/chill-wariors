@@ -27,7 +27,7 @@ export default function InventoryPanel() {
   if (panel !== "inventory") return null;
 
   return (
-    <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/85 backdrop-blur-md">
+    <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-[#0f0805]/85 backdrop-blur-md">
       <div className="flex w-full max-w-xl flex-col items-stretch gap-3 px-3 py-6 sm:gap-4 sm:px-6 sm:py-8">
         <div className="flex items-baseline justify-between">
           <div>
@@ -40,7 +40,7 @@ export default function InventoryPanel() {
           </div>
           <button
             onClick={closePanel}
-            className="rounded-md border border-white/20 bg-white/[0.05] px-3 py-1.5 font-mono text-xs font-bold tracking-[0.2em] text-white/80 transition hover:border-white/50 hover:text-white"
+            className="rounded-md border border-amber-100/20 bg-amber-100/[0.05] px-3 py-1.5 font-mono text-xs font-bold tracking-[0.2em] text-white/80 transition hover:border-amber-100/50 hover:text-white"
           >
             ✕ FERMER
           </button>
@@ -57,7 +57,7 @@ export default function InventoryPanel() {
           ))}
         </div>
 
-        <div className="rounded-md border border-white/10 bg-black/30 px-4 py-2 font-mono text-[10px] text-white/40 sm:text-[11px]">
+        <div className="rounded-md border border-amber-100/10 bg-black/30 px-4 py-2 font-mono text-[10px] text-white/40 sm:text-[11px]">
           Seule l'arme équipée combat et gagne de l'XP. Switch d'arme libre,
           sans coût. Le trempage post-T5 se fait à l'autel de la mine.
         </div>
@@ -99,7 +99,7 @@ function WeaponCard(props: { weapon: WeaponKind; equipped: boolean; onEquip: () 
         ) : (
           <button
             onClick={props.onEquip}
-            className="rounded-md border-2 border-white/20 bg-white/[0.05] px-3 py-1 font-mono text-[10px] font-bold tracking-[0.2em] text-white/80 transition hover:border-white/60 hover:text-white active:scale-[0.97] sm:text-[11px]"
+            className="rounded-md border-2 border-amber-100/20 bg-amber-100/[0.05] px-3 py-1 font-mono text-[10px] font-bold tracking-[0.2em] text-white/80 transition hover:border-amber-100/60 hover:text-white active:scale-[0.97] sm:text-[11px]"
           >
             ÉQUIPER
           </button>
@@ -114,7 +114,7 @@ function WeaponCard(props: { weapon: WeaponKind; equipped: boolean; onEquip: () 
           return (
             <div
               key={branch}
-              className="rounded border border-white/10 bg-black/30 px-2 py-1.5"
+              className="rounded border border-amber-100/10 bg-black/30 px-2 py-1.5"
             >
               <div className="font-mono text-[8px] tracking-[0.2em]" style={{ color: tint }}>
                 {BRANCH_LABEL[weapon][branch]}

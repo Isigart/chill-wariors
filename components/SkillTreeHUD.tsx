@@ -22,7 +22,7 @@ function NavTabs() {
     <div className="flex items-center gap-1.5 sm:gap-2">
       <button
         onClick={() => openPanel("inventory")}
-        className="rounded-md border border-white/15 bg-black/30 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.15em] text-white/70 transition hover:border-white/40 hover:text-white active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-[11px] sm:tracking-[0.2em]"
+        className="rounded-md border border-amber-100/15 bg-black/30 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.15em] text-white/70 transition hover:border-amber-100/40 hover:text-white active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-[11px] sm:tracking-[0.2em]"
       >
         🎒 INVENTAIRE
       </button>
@@ -149,8 +149,8 @@ function WeaponRow(props: {
               onClick={() => props.onSelect(branch)}
               className={`group relative flex min-w-0 flex-1 select-none flex-col gap-1 rounded-md border-2 px-1.5 py-1.5 text-left transition active:scale-[0.98] sm:gap-1.5 sm:px-2.5 sm:py-2 ${
                 active
-                  ? "border-white/70 bg-white/[0.08]"
-                  : "border-white/10 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.05]"
+                  ? "border-amber-100/70 bg-amber-100/[0.08]"
+                  : "border-amber-100/10 bg-amber-100/[0.02] hover:border-amber-100/30 hover:bg-amber-100/[0.05]"
               }`}
               style={{
                 boxShadow: active ? `0 0 12px ${tint}55, inset 0 0 0 1px ${tint}30` : undefined,
@@ -170,7 +170,7 @@ function WeaponRow(props: {
                   T{tier}/{MAX_TIER}
                 </div>
               </div>
-              <div className="relative h-1 overflow-hidden rounded-full bg-white/10">
+              <div className="relative h-1 overflow-hidden rounded-full bg-amber-100/10">
                 <div
                   className="absolute inset-y-0 left-0 transition-[width] duration-100"
                   style={{ width: `${ratio * 100}%`, background: tint }}

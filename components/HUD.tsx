@@ -35,7 +35,7 @@ export default function HUD() {
             </div>
           </div>
           {mode === "idle" && idleTier > 0 && (
-            <div className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] tracking-[0.2em] text-white/60 sm:text-[10px]">
+            <div className="rounded border border-amber-100/15 bg-black/30 px-1.5 py-0.5 text-[9px] tracking-[0.2em] text-white/60 sm:text-[10px]">
               <span className="text-white/40">TIER&nbsp;</span>
               <span className="font-bold text-white/90 tabular-nums">{idleTier}</span>
             </div>
@@ -88,7 +88,7 @@ export default function HUD() {
                 {Math.ceil(playerHp)} / {playerHpMax}
               </span>
             </div>
-            <div className="relative h-2.5 w-44 max-w-[55vw] overflow-hidden rounded-full border border-white/15 bg-black/40 sm:h-3 sm:w-64 sm:max-w-[60vw]">
+            <div className="relative h-2.5 w-44 max-w-[55vw] overflow-hidden rounded-full border border-amber-100/15 bg-black/40 sm:h-3 sm:w-64 sm:max-w-[60vw]">
               <div
                 className="absolute inset-y-0 left-0 transition-[width] duration-100"
                 style={{
@@ -108,7 +108,7 @@ export default function HUD() {
           <div className="pointer-events-auto absolute bottom-2 right-2 font-mono sm:bottom-4 sm:right-4">
             <button
               onClick={endRun}
-              className="rounded-md border-2 border-white/30 bg-white/[0.05] px-2 py-1 text-[10px] font-bold tracking-[0.15em] text-white/80 transition hover:border-amber-400/60 hover:text-amber-200 active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-xs sm:tracking-[0.2em]"
+              className="rounded-md border-2 border-amber-100/30 bg-amber-100/[0.05] px-2 py-1 text-[10px] font-bold tracking-[0.15em] text-white/80 transition hover:border-amber-400/60 hover:text-amber-200 active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-xs sm:tracking-[0.2em]"
             >
               <span className="sm:hidden">⚱ RITUEL</span>
               <span className="hidden sm:inline">⚱ TENTER LE RITUEL</span>
