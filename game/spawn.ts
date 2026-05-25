@@ -30,5 +30,8 @@ function spawnOneMob(world: World) {
     speed: BALANCE.mob.speed,
     weakenedUntilMs: -Infinity,
     weakenMultiplier: 1,
+    burnUntilMs: -Infinity,
+    burnDps: 0,
+    burnPropagationRadius: 0,
   });
 }

@@ -128,6 +128,7 @@ function sanitize(input: unknown): GameProgression {
     weapons: {
       sword: { xp: { ...def.weapons.sword.xp }, tier: { ...def.weapons.sword.tier } },
       bow: { xp: { ...def.weapons.bow.xp }, tier: { ...def.weapons.bow.tier } },
+      fireWand: { xp: { ...def.weapons.fireWand.xp }, tier: { ...def.weapons.fireWand.tier } },
     },
   };
 

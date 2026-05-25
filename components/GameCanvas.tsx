@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { createWorld, resizeWorld } from "@/game/world";
 import { tickWorld } from "@/game/tick";
 import { renderWorld } from "@/game/render";
-import { getEffectiveBowStats, getEffectiveSwordStats } from "@/game/progression";
+import { getEffectiveBowStats, getEffectiveFireWandStats, getEffectiveSwordStats } from "@/game/progression";
 import type { World } from "@/game/types";
 import { useGame } from "@/lib/store";
 import { loadSave, persistFromStore } from "@/lib/save";
@@ -88,13 +88,16 @@ export default function GameCanvas() {
       if (!w) return;
       const swT = s.progression.weapons.sword.tier;
       const bwT = s.progression.weapons.bow.tier;
+      const fwT = s.progression.weapons.fireWand.tier;
       const key =
         `${swT.speed ?? 0}-${swT.range ?? 0}-${swT.damage ?? 0}` +
-        `|${bwT.cadence ?? 0}-${bwT.pierce ?? 0}-${bwT.multi ?? 0}`;
+        `|${bwT.cadence ?? 0}-${bwT.pierce ?? 0}-${bwT.multi ?? 0}` +
+        `|${fwT.inferno ?? 0}-${fwT.brasier ?? 0}-${fwT.lancers ?? 0}`;
       if (key !== lastTiersKeyRef.current) {
         lastTiersKeyRef.current = key;
         w.sword.effective = getEffectiveSwordStats(s.progression);
         w.bow.effective = getEffectiveBowStats(s.progression);
+        w.fireWand.effective = getEffectiveFireWandStats(s.progression);
       }
       if (s.progression.equipped !== lastEquippedRef.current) {
         lastEquippedRef.current = s.progression.equipped;

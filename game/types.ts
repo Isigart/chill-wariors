@@ -1,4 +1,4 @@
-import type { EffectiveBowStats, EffectiveSwordStats } from "./progression";
+import type { EffectiveBowStats, EffectiveFireWandStats, EffectiveSwordStats } from "./progression";
 import type { WeaponKind } from "@/lib/balance";
 
 export type Vec2 = { x: number; y: number };
@@ -22,6 +22,11 @@ export interface Mob {
   /** Affaiblissement temporaire (perforation T4) : multiplicateur de dégâts. */
   weakenedUntilMs: number;
   weakenMultiplier: number;
+  /** Burn DoT (baguette brasier). */
+  burnUntilMs: number;
+  burnDps: number;
+  /** Pour propagation T4 brasier : on doit savoir si le mob meurt EN feu. */
+  burnPropagationRadius: number;
 }
 
 export interface Sword {
@@ -33,9 +38,46 @@ export interface Sword {
 }
 
 export interface Bow {
-  /** nowMs du dernier tir effectif. */
   lastShotAt: number;
   effective: EffectiveBowStats;
+}
+
+export interface FireWand {
+  lastShotAt: number;
+  effective: EffectiveFireWandStats;
+}
+
+/** Projectile de la baguette. Explose à l'impact OU à portée max. */
+export interface FireProjectile {
+  id: number;
+  pos: Vec2;
+  vel: Vec2;
+  /** Cible visée (pour le clampage à la portée max). */
+  targetPos: Vec2;
+  damage: number;
+  explosionRadius: number;
+  burnDurationMs: number;
+  burnDps: number;
+  spawnedAt: number;
+  /** Distance maximale parcourue (sinon explose à portée). */
+  maxDistance: number;
+  traveled: number;
+  isHoming: boolean;
+  homingTargetId: number | null;
+  isMeteor: boolean;
+  meteorElevation: number; // altitude au-dessus du sol (px). Décroît jusqu'à 0.
+  secondaryWave?: { delayMs: number; ratio: number };
+  groundFire?: { durationMs: number; radius: number; dps: number };
+  burnPropagationRadius?: number;
+}
+
+/** Patch de feu au sol (T5 brasier). */
+export interface GroundFire {
+  pos: Vec2;
+  radius: number;
+  dps: number;
+  ageMs: number;
+  lifeMs: number;
 }
 
 /** Tir programmé (utile pour doubleTap : 2e volée différée). */
@@ -97,8 +139,13 @@ export interface World {
   equipped: WeaponKind;
   sword: Sword;
   bow: Bow;
+  fireWand: FireWand;
   mobs: Mob[];
   arrows: Arrow[];
+  fireProjectiles: FireProjectile[];
+  groundFires: GroundFire[];
+  /** Explosions programmées (T4 inferno : 2e onde différée). */
+  pendingExplosions: Array<{ atMs: number; pos: Vec2; damage: number; radius: number }>;
   pendingShots: PendingShot[];
   particles: Particle[];
   popups: Popup[];

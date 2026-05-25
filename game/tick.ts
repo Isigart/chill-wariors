@@ -3,6 +3,7 @@ import type { Mob, TickHooks, Vec2, World } from "./types";
 import { tickSpawn } from "./spawn";
 import { applyKnockback, rollCrit, triggerExplosion } from "./effects";
 import { tickBow } from "./bow";
+import { tickFireWand } from "./fireWand";
 
 const TRAIL_LIFE_MS = 180;
 const TRAIL_SAMPLE_MS = 16;
@@ -192,6 +193,10 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   /* ----- ARC ----- */
 
   tickBow(world, dtMs, hooks);
+
+  /* ----- BAGUETTE DE FEU ----- */
+
+  tickFireWand(world, dtMs, hooks);
 
   /* ----- Vieillissement particules / popups / trail ----- */
 

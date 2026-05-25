@@ -5,6 +5,9 @@ import {
   type BowStatOverride,
   type BowTierEffects,
   type BowTierVisual,
+  type FireWandStatOverride,
+  type FireWandTierEffects,
+  type FireWandTierVisual,
   type SwordStatOverride,
   type SwordTierEffects,
   type SwordTierVisual,
@@ -50,6 +53,19 @@ export interface EffectiveBowStats {
   visual: BowTierVisual;
 }
 
+export interface EffectiveFireWandStats {
+  range: number;
+  projectileSpeed: number;
+  fireRateMs: number;
+  damage: number;
+  explosionRadius: number;
+  burnDurationMs: number;
+  burnDps: number;
+  projectilesPerShot: number;
+  effects: FireWandTierEffects;
+  visual: FireWandTierVisual;
+}
+
 /* ---------- Init ---------- */
 
 function emptyWeaponProg(kind: WeaponKind): WeaponProgression {
@@ -69,6 +85,7 @@ export function createProgression(): GameProgression {
     weapons: {
       sword: emptyWeaponProg("sword"),
       bow: emptyWeaponProg("bow"),
+      fireWand: emptyWeaponProg("fireWand"),
     },
   };
 }
@@ -187,6 +204,39 @@ export function getEffectiveBowStats(prog: GameProgression): EffectiveBowStats {
   }
 
   return { range, arrowSpeed, fireRateMs, damage, arrowsPerShot, spreadDegrees, pierceCount, effects, visual };
+}
+
+export function getEffectiveFireWandStats(prog: GameProgression): EffectiveFireWandStats {
+  const base = BALANCE.weapons.fireWand.base;
+  let range: number = base.range;
+  let projectileSpeed: number = base.projectileSpeed;
+  let fireRateMs: number = base.fireRateMs;
+  let damage: number = base.damage;
+  let explosionRadius: number = base.explosionRadius;
+  let burnDurationMs: number = base.burnDurationMs;
+  let burnDps: number = base.burnDps;
+  let projectilesPerShot: number = base.projectilesPerShot;
+  const effects: FireWandTierEffects = {};
+  const visual: FireWandTierVisual = {};
+
+  const wp = prog.weapons.fireWand;
+  for (const branch of BRANCHES_OF.fireWand) {
+    const t = wp.tier[branch as string];
+    if (!t || t < 1) continue;
+    const def = BALANCE.weapons.fireWand.branches[branch].tiers[t - 1] as { stats: FireWandStatOverride; effects?: FireWandTierEffects; visual?: FireWandTierVisual };
+    if (def.stats.range !== undefined) range = def.stats.range;
+    if (def.stats.projectileSpeed !== undefined) projectileSpeed = def.stats.projectileSpeed;
+    if (def.stats.fireRateMs !== undefined) fireRateMs = def.stats.fireRateMs;
+    if (def.stats.damage !== undefined) damage = def.stats.damage;
+    if (def.stats.explosionRadius !== undefined) explosionRadius = def.stats.explosionRadius;
+    if (def.stats.burnDurationMs !== undefined) burnDurationMs = def.stats.burnDurationMs;
+    if (def.stats.burnDps !== undefined) burnDps = def.stats.burnDps;
+    if (def.stats.projectilesPerShot !== undefined) projectilesPerShot = def.stats.projectilesPerShot;
+    if (def.effects) Object.assign(effects, def.effects);
+    if (def.visual) Object.assign(visual, def.visual);
+  }
+
+  return { range, projectileSpeed, fireRateMs, damage, explosionRadius, burnDurationMs, burnDps, projectilesPerShot, effects, visual };
 }
 
 export { MAX_TIER } from "@/lib/balance";

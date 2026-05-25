@@ -8,7 +8,7 @@
  * Doc humaine des paliers : `design/SWORD_TREE.md`, `design/WEAPON_TREES.md`.
  */
 
-export const WEAPONS = ["sword", "bow"] as const;
+export const WEAPONS = ["sword", "bow", "fireWand"] as const;
 export type WeaponKind = (typeof WEAPONS)[number];
 
 /* ------------------------------ Sword ------------------------------ */
@@ -98,6 +98,63 @@ export interface BowTier {
   visual?: BowTierVisual;
 }
 
+/* ------------------------------ FireWand ------------------------------ */
+
+export interface FireWandStatOverride {
+  range?: number;
+  projectileSpeed?: number;
+  fireRateMs?: number;
+  damage?: number;
+  explosionRadius?: number;
+  burnDurationMs?: number;
+  burnDps?: number;
+  projectilesPerShot?: number;
+}
+
+export interface FireWandTierEffects {
+  /** T4 inferno : 2e explosion à 50% dmg, 200ms après. */
+  secondaryWave?: { delayMs: number; ratio: number };
+  /** T5 inferno : météore (trajectoire depuis le ciel, shake fort). */
+  meteor?: boolean;
+  /** T4 brasier : un mob qui meurt brûlant propage le feu (rayon). */
+  burnPropagationRadius?: number;
+  /** T5 brasier : laisse un patch de feu au sol pendant N ms. */
+  groundFireDurationMs?: number;
+  groundFireRadius?: number;
+  groundFireDps?: number;
+  /** T3 lancers : 1 tir sur N (ex 1/3) lâche 2 projectiles. */
+  doubleCastRatio?: number;
+  /** T4 lancers : N projectiles forcés par tir. */
+  multiCastCount?: number;
+  /** T5 lancers : flux continu + homing partiel. */
+  continuousStorm?: boolean;
+  homingRatio?: number;
+  popupColor?: string;
+}
+
+export interface FireWandTierVisual {
+  emberPersist?: boolean;     // T2 : particules de braises qui restent
+  heatWave?: boolean;         // T3 : onde de chaleur visible
+  smokeVolume?: boolean;      // T4 : fumée volumétrique
+  fallingMeteor?: boolean;    // T5 inferno
+  bigFlames?: boolean;        // T2-T3 brasier : flammes plus grosses
+  fullBurnFlames?: boolean;   // T3 brasier
+  chainEffect?: boolean;      // T4 brasier
+  permanentEmber?: boolean;   // T5 brasier
+  wandGlow?: boolean;         // T1+ lancers
+  fasterProjectile?: boolean; // T2 lancers
+  multiCastEcho?: boolean;    // T3 lancers
+  tripleFlamePath?: boolean;  // T4 lancers
+  spewingWand?: boolean;      // T5 lancers
+}
+
+export interface FireWandTier {
+  label: string;
+  stats: FireWandStatOverride;
+  effects?: FireWandTierEffects;
+  visual?: FireWandTierVisual;
+}
+
 /* ------------------------------ BALANCE ------------------------------ */
 
 export const BALANCE = {
@@ -170,6 +227,51 @@ export const BALANCE = {
       },
     },
 
+    fireWand: {
+      base: {
+        range: 320,
+        projectileSpeed: 280,
+        fireRateMs: 900,
+        damage: 3,
+        explosionRadius: 50,
+        burnDurationMs: 0,
+        burnDps: 0,
+        projectilesPerShot: 1,
+      },
+      branches: {
+        inferno: {
+          thresholds: [15, 75, 350, 1500, 6000] as const,
+          tiers: [
+            { label: "Flammes vives", stats: { damage: 6, explosionRadius: 65 } },
+            { label: "Braises persistantes", stats: { damage: 12, explosionRadius: 85 }, visual: { emberPersist: true } },
+            { label: "Onde de chaleur", stats: { damage: 25, explosionRadius: 110 }, visual: { emberPersist: true, heatWave: true } },
+            { label: "Double détonation", stats: { damage: 50, explosionRadius: 140 }, effects: { secondaryWave: { delayMs: 200, ratio: 0.5 } }, visual: { emberPersist: true, heatWave: true, smokeVolume: true } },
+            { label: "Météore", stats: { damage: 120, explosionRadius: 180 }, effects: { meteor: true, secondaryWave: { delayMs: 200, ratio: 0.5 } }, visual: { emberPersist: true, heatWave: true, smokeVolume: true, fallingMeteor: true } },
+          ] satisfies FireWandTier[],
+        },
+        brasier: {
+          thresholds: [15, 75, 350, 1500, 6000] as const,
+          tiers: [
+            { label: "Marque embrasée", stats: { burnDurationMs: 1500, burnDps: 1 } },
+            { label: "Brûlure", stats: { burnDurationMs: 2500, burnDps: 3 }, visual: { bigFlames: true } },
+            { label: "Immolation", stats: { burnDurationMs: 4000, burnDps: 8 }, visual: { bigFlames: true, fullBurnFlames: true } },
+            { label: "Propagation", stats: { burnDurationMs: 6000, burnDps: 20 }, effects: { burnPropagationRadius: 60 }, visual: { bigFlames: true, fullBurnFlames: true, chainEffect: true } },
+            { label: "Enfer permanent", stats: { burnDurationMs: 10000, burnDps: 50 }, effects: { burnPropagationRadius: 80, groundFireDurationMs: 3000, groundFireRadius: 70, groundFireDps: 15 }, visual: { bigFlames: true, fullBurnFlames: true, chainEffect: true, permanentEmber: true } },
+          ] satisfies FireWandTier[],
+        },
+        lancers: {
+          thresholds: [15, 75, 350, 1500, 6000] as const,
+          tiers: [
+            { label: "Cadence accrue", stats: { fireRateMs: 700 }, visual: { wandGlow: true } },
+            { label: "Projectiles rapides", stats: { fireRateMs: 550, projectileSpeed: 350 }, visual: { wandGlow: true, fasterProjectile: true } },
+            { label: "Double cast", stats: { fireRateMs: 400 }, effects: { doubleCastRatio: 1 / 3 }, visual: { wandGlow: true, multiCastEcho: true } },
+            { label: "Triple cast", stats: { fireRateMs: 280 }, effects: { multiCastCount: 3 }, visual: { wandGlow: true, tripleFlamePath: true } },
+            { label: "Tempête de feu", stats: { fireRateMs: 180 }, effects: { continuousStorm: true, homingRatio: 0.4 }, visual: { wandGlow: true, tripleFlamePath: true, spewingWand: true } },
+          ] satisfies FireWandTier[],
+        },
+      },
+    },
+
     bow: {
       base: {
         range: 400,
@@ -224,6 +326,7 @@ export type AnyBranch = BranchOf<"sword"> | BranchOf<"bow">;
 export const BRANCHES_OF: { [K in WeaponKind]: readonly BranchOf<K>[] } = {
   sword: ["speed", "range", "damage"] as const,
   bow: ["cadence", "pierce", "multi"] as const,
+  fireWand: ["inferno", "brasier", "lancers"] as const,
 };
 
 export const MAX_TIER = 5;
@@ -240,18 +343,23 @@ export const BRANCH_TINT: Record<WeaponKind, Record<string, string>> = {
     pierce: "#ffffff",
     multi: "#c8d4f0",
   },
+  fireWand: {
+    inferno: "#ff5a3d",
+    brasier: "#ff9a3d",
+    lancers: "#ffd24d",
+  },
 };
 
-/** Couleur d'accent globale par arme (titre, bordure de la section HUD). */
 export const WEAPON_TINT: Record<WeaponKind, string> = {
   sword: "#dde3f0",
   bow: "#ffe18a",
+  fireWand: "#ff9a3d",
 };
 
-/** Label compact pour le HUD. */
 export const WEAPON_LABEL: Record<WeaponKind, string> = {
   sword: "ÉPÉE",
   bow: "ARC",
+  fireWand: "BAGUETTE",
 };
 
 export const BRANCH_LABEL: Record<WeaponKind, Record<string, string>> = {
@@ -265,6 +373,11 @@ export const BRANCH_LABEL: Record<WeaponKind, Record<string, string>> = {
     pierce: "PIERCE",
     multi: "ÉVENTAIL",
   },
+  fireWand: {
+    inferno: "INFERNO",
+    brasier: "BRASIER",
+    lancers: "LANCERS",
+  },
 };
 
 export const BRANCH_ICON: Record<WeaponKind, Record<string, string>> = {
@@ -277,5 +390,10 @@ export const BRANCH_ICON: Record<WeaponKind, Record<string, string>> = {
     cadence: "🎯",
     pierce: "➤",
     multi: "🎆",
+  },
+  fireWand: {
+    inferno: "💥",
+    brasier: "🔥",
+    lancers: "✨",
   },
 };

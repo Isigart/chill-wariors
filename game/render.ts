@@ -32,6 +32,37 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   const tipY = py + Math.sin(a1) * eff.length;
   const tint = eff.visual.redTint ?? 0;
 
+  // 2b. Ground fires (patches au sol).
+  for (const g of world.groundFires) {
+    const t = g.ageMs / g.lifeMs;
+    const baseAlpha = 0.5 * (1 - t * 0.4);
+    // Anneau extérieur orange.
+    ctx.globalAlpha = baseAlpha * 0.4;
+    ctx.fillStyle = "#ff5a3d";
+    ctx.beginPath();
+    ctx.arc(g.pos.x, g.pos.y, g.radius, 0, TWO_PI);
+    ctx.fill();
+    // Cœur plus chaud.
+    ctx.globalAlpha = baseAlpha;
+    ctx.fillStyle = "#ffd24d";
+    ctx.beginPath();
+    ctx.arc(g.pos.x, g.pos.y, g.radius * 0.55, 0, TWO_PI);
+    ctx.fill();
+    // Particules occasionnelles montantes.
+    if (Math.random() < 0.4) {
+      const ra = Math.random() * TWO_PI;
+      const rd = Math.random() * g.radius;
+      world.particles.push({
+        pos: { x: g.pos.x + Math.cos(ra) * rd, y: g.pos.y + Math.sin(ra) * rd },
+        vel: { x: (Math.random() - 0.5) * 30, y: -60 - Math.random() * 60 },
+        lifeMs: 350,
+        ageMs: 0,
+        color: Math.random() < 0.5 ? "#ffd24d" : "#ff8a3d",
+      });
+    }
+  }
+  ctx.globalAlpha = 1;
+
   // 3. Shockwaves (ondes au sol).
   for (const sw of world.shockwaves) {
     const k = sw.ageMs / sw.lifeMs;
@@ -155,9 +186,31 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     }
   }
 
-  // 10. Mobs.
+  // 10. Mobs (avec halo si en feu).
   for (const mob of world.mobs) {
     const k = mob.hp / Math.max(1, mob.maxHp);
+    const burning = world.nowMs < mob.burnUntilMs && mob.burnDps > 0;
+    if (burning) {
+      // Halo orange autour du mob en feu.
+      ctx.save();
+      ctx.shadowColor = "#ff8a3d";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "rgba(255,138,61,0.35)";
+      ctx.beginPath();
+      ctx.arc(mob.pos.x, mob.pos.y, mob.radius + 4, 0, TWO_PI);
+      ctx.fill();
+      ctx.restore();
+      // Petite flamme aléatoire au-dessus.
+      if (Math.random() < 0.5) {
+        world.particles.push({
+          pos: { x: mob.pos.x + (Math.random() - 0.5) * mob.radius, y: mob.pos.y - mob.radius },
+          vel: { x: (Math.random() - 0.5) * 30, y: -90 - Math.random() * 50 },
+          lifeMs: 250,
+          ageMs: 0,
+          color: Math.random() < 0.5 ? "#ffd24d" : "#ff8a3d",
+        });
+      }
+    }
     ctx.fillStyle = `hsl(0 75% ${40 + k * 20}%)`;
     ctx.beginPath();
     ctx.arc(mob.pos.x, mob.pos.y, mob.radius, 0, TWO_PI);
@@ -171,6 +224,68 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
       ctx.fillRect(bx, by, bw, bh);
       ctx.fillStyle = "#ff5a5a";
       ctx.fillRect(bx, by, bw * k, bh);
+    }
+  }
+
+  // 10 ter. Projectiles de feu (baguette).
+  for (const p of world.fireProjectiles) {
+    if (p.isMeteor && p.meteorElevation > 0) {
+      // Ombre au sol qui rétrécit selon l'altitude (target = pos courante).
+      const shadowR = 18 + (p.meteorElevation / 480) * 30;
+      ctx.globalAlpha = 0.35 * (1 - p.meteorElevation / 480);
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(p.pos.x, p.pos.y, shadowR, 0, TWO_PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Météore lui-même : disque flamboyant à altitude visuelle (offset Y négatif).
+      const visY = p.pos.y - p.meteorElevation;
+      ctx.save();
+      ctx.shadowColor = "#ff5a3d";
+      ctx.shadowBlur = 28;
+      ctx.fillStyle = "#ff8a3d";
+      ctx.beginPath();
+      ctx.arc(p.pos.x, visY, 20, 0, TWO_PI);
+      ctx.fill();
+      ctx.fillStyle = "#ffd24d";
+      ctx.beginPath();
+      ctx.arc(p.pos.x, visY, 10, 0, TWO_PI);
+      ctx.fill();
+      ctx.restore();
+      // Trail vertical de braises.
+      if (Math.random() < 0.7) {
+        world.particles.push({
+          pos: { x: p.pos.x + (Math.random() - 0.5) * 14, y: visY + 12 },
+          vel: { x: (Math.random() - 0.5) * 40, y: 40 + Math.random() * 60 },
+          lifeMs: 300,
+          ageMs: 0,
+          color: Math.random() < 0.5 ? "#ffd24d" : "#ff8a3d",
+        });
+      }
+    } else {
+      // Projectile normal : boule de feu + trail.
+      ctx.save();
+      ctx.shadowColor = "#ff8a3d";
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = "#ff8a3d";
+      ctx.beginPath();
+      ctx.arc(p.pos.x, p.pos.y, 7, 0, TWO_PI);
+      ctx.fill();
+      ctx.fillStyle = "#ffe18a";
+      ctx.beginPath();
+      ctx.arc(p.pos.x, p.pos.y, 3.5, 0, TWO_PI);
+      ctx.fill();
+      ctx.restore();
+      // Étincelle traînante.
+      if (Math.random() < 0.6) {
+        world.particles.push({
+          pos: { x: p.pos.x, y: p.pos.y },
+          vel: { x: -p.vel.x * 0.1 + (Math.random() - 0.5) * 40, y: -p.vel.y * 0.1 + (Math.random() - 0.5) * 40 },
+          lifeMs: 220,
+          ageMs: 0,
+          color: Math.random() < 0.5 ? "#ffd24d" : "#ff5a3d",
+        });
+      }
     }
   }
 

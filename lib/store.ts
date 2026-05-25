@@ -64,6 +64,7 @@ function clone(p: GameProgression): GameProgression {
     weapons: {
       sword: { xp: { ...p.weapons.sword.xp }, tier: { ...p.weapons.sword.tier } },
       bow: { xp: { ...p.weapons.bow.xp }, tier: { ...p.weapons.bow.tier } },
+      fireWand: { xp: { ...p.weapons.fireWand.xp }, tier: { ...p.weapons.fireWand.tier } },
     },
   };
 }

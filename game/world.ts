@@ -1,5 +1,6 @@
 import {
   getEffectiveBowStats,
+  getEffectiveFireWandStats,
   getEffectiveSwordStats,
   type GameProgression,
 } from "./progression";
@@ -21,8 +22,15 @@ export function createWorld(w: number, h: number, prog: GameProgression): World 
       lastShotAt: -Infinity,
       effective: getEffectiveBowStats(prog),
     },
+    fireWand: {
+      lastShotAt: -Infinity,
+      effective: getEffectiveFireWandStats(prog),
+    },
     mobs: [],
     arrows: [],
+    fireProjectiles: [],
+    groundFires: [],
+    pendingExplosions: [],
     pendingShots: [],
     particles: [],
     popups: [],
