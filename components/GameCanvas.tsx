@@ -187,6 +187,9 @@ export default function GameCanvas() {
       const eqTr = s.progression.trempage[s.progression.equipped] ?? {};
       w.equippedTrempage = { ...eqTr };
 
+      // Sync préférence tremblement.
+      w.shakeEnabled = s.settings.screenShake;
+
       // Sync kills totaux pour le scaling de difficulté idle.
       if (w.totalKills !== s.kills) {
         w.totalKills = s.kills;

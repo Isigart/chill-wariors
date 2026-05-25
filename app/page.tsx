@@ -4,7 +4,7 @@ import SkillTreeHUD from "@/components/SkillTreeHUD";
 import AltarUI from "@/components/AltarUI";
 import InventoryPanel from "@/components/InventoryPanel";
 import DungeonPanel from "@/components/DungeonPanel";
-import DevPanel from "@/components/DevPanel";
+import SettingsPanel from "@/components/SettingsPanel";
 
 export default function Page() {
   return (
@@ -15,7 +15,7 @@ export default function Page() {
       <InventoryPanel />
       <DungeonPanel />
       <AltarUI />
-      <DevPanel />
+      <SettingsPanel />
     </main>
   );
 }

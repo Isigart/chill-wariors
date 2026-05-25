@@ -20,6 +20,7 @@ interface SaveV7 {
   mithril: number;
   mineKeys: number;
   keys?: Record<string, number>;
+  settings?: { screenShake?: boolean };
 }
 
 interface SaveV6 {
@@ -77,6 +78,9 @@ export function loadSave(): { progression: GameProgression } | null {
           progression: prog,
           mithril: typeof parsed.mithril === "number" ? Math.max(0, parsed.mithril) : 0,
           mineKeys: typeof parsed.mineKeys === "number" ? Math.max(0, Math.floor(parsed.mineKeys)) : 0,
+          settings: {
+            screenShake: typeof parsed.settings?.screenShake === "boolean" ? parsed.settings.screenShake : true,
+          },
         });
         return { progression: prog };
       }
@@ -212,6 +216,7 @@ export function persistFromStore() {
     progression: s.progression,
     mithril: s.mithril,
     mineKeys: s.mineKeys,
+    settings: { screenShake: s.settings.screenShake },
   };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));

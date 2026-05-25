@@ -157,6 +157,8 @@ export interface World {
    * store. Sert au rendu des visuels de trempage (T10 = glow, T50 = halo).
    */
   equippedTrempage: Record<string, number>;
+  /** Préférence utilisateur : activer/désactiver les tremblements d'écran. */
+  shakeEnabled: boolean;
   /** HP joueur (instance uniquement). */
   playerHp: number;
   playerHpMax: number;

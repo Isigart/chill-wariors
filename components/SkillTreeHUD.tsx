@@ -32,6 +32,12 @@ function NavTabs() {
       >
         ⛏ DONJON
       </button>
+      <button
+        onClick={() => openPanel("settings")}
+        className="rounded-md border border-amber-100/15 bg-amber-100/[0.03] px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.15em] text-white/70 transition hover:border-amber-100/40 hover:text-white active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-[11px] sm:tracking-[0.2em]"
+      >
+        ⚙ RÉGLAGES
+      </button>
     </div>
   );
 }

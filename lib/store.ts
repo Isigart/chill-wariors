@@ -10,7 +10,12 @@ import {
 import { BALANCE, BRANCHES_OF, TREMPAGE, type WeaponKind } from "@/lib/balance";
 
 export type GameMode = "idle" | "instance" | "altar";
-export type PanelKind = "none" | "inventory" | "dungeon";
+export type PanelKind = "none" | "inventory" | "dungeon" | "settings";
+
+export interface GameSettings {
+  /** Active les tremblements d'écran (kills, impacts, …). */
+  screenShake: boolean;
+}
 
 export interface TrempageResult {
   success: boolean;
@@ -53,8 +58,10 @@ type GameStore = {
   trempageAttempts: number;
   /** Dernier résultat de trempage (transitoire, consommé par l'UI pour l'anim). */
   lastTrempage: TrempageResult | null;
-  /** Panneau ouvert (inventaire, donjon) — null si aucun. */
+  /** Panneau ouvert (inventaire, donjon, settings) — "none" si aucun. */
   panel: PanelKind;
+  /** Préférences utilisateur persistées. */
+  settings: GameSettings;
 
   addKill: () => void;
   setTraining: (weapon: WeaponKind, branch: string) => void;
@@ -83,6 +90,10 @@ type GameStore = {
   openPanel: (p: PanelKind) => void;
   closePanel: () => void;
 
+  // --- Settings ---
+  setSettings: (patch: Partial<GameSettings>) => void;
+  toggleScreenShake: () => void;
+
   // --- Debug ---
   devMaxAllWeapons: () => void;
   devGiveMithril: (amount: number) => void;
@@ -90,7 +101,7 @@ type GameStore = {
   devResetAll: () => void;
 
   hydrate: (s: Partial<Pick<GameStore,
-    "kills" | "progression" | "mithril" | "mineKeys" | "keys" | "mode"
+    "kills" | "progression" | "mithril" | "mineKeys" | "keys" | "mode" | "settings"
   >>) => void;
 };
 
@@ -115,6 +126,7 @@ export const useGame = create<GameStore>((set, get) => ({
   trempageAttempts: 0,
   lastTrempage: null,
   panel: "none",
+  settings: { screenShake: true },
 
   addKill: () => set((s) => ({ kills: s.kills + 1 })),
 
@@ -240,6 +252,11 @@ export const useGame = create<GameStore>((set, get) => ({
   openPanel: (p) => set({ panel: p }),
   closePanel: () => set({ panel: "none" }),
 
+  setSettings: (patch) =>
+    set((s) => ({ settings: { ...s.settings, ...patch } })),
+  toggleScreenShake: () =>
+    set((s) => ({ settings: { ...s.settings, screenShake: !s.settings.screenShake } })),
+
   devMaxAllWeapons: () => {
     const prev = get().progression;
     const next = clone(prev);
@@ -277,6 +294,7 @@ export const useGame = create<GameStore>((set, get) => ({
       trempageAttempts: 0,
       lastTrempage: null,
       panel: "none",
+      settings: { screenShake: true },
     });
     if (typeof window !== "undefined") {
       try {

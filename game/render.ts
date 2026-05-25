@@ -44,7 +44,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   ctx.save();
 
   // 2. Screen shake.
-  if (world.screenShake > 0) {
+  if (world.shakeEnabled && world.screenShake > 0) {
     const sx = (Math.random() * 2 - 1) * world.screenShake;
     const sy = (Math.random() * 2 - 1) * world.screenShake;
     ctx.translate(sx, sy);
