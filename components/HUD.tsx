@@ -31,13 +31,18 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* En haut à droite : mithril banké (toujours visible) + bouton mode */}
+      {/* En haut à droite : mithril (total live en instance) + bouton mode */}
       <div className="pointer-events-auto absolute right-4 top-4 select-none flex flex-col items-end gap-2 font-mono">
         <div className="text-right">
           <div className="text-[10px] tracking-[0.3em] text-amber-300/60">MITHRIL</div>
           <div className="text-2xl font-bold tabular-nums leading-none text-amber-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
-            {mithril}
+            {mode === "instance" ? mithril + mithrilInRun : mithril}
           </div>
+          {mode === "instance" && mithrilInRun > 0 && (
+            <div className="mt-0.5 text-[10px] tabular-nums text-amber-300/90">
+              +{mithrilInRun} ce run
+            </div>
+          )}
         </div>
         {mode === "idle" && (
           <button

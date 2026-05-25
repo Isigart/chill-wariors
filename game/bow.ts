@@ -256,5 +256,15 @@ function onMobKilledByArrow(world: World, mob: Mob, hooks: TickHooks, popupColor
     ageMs: 0,
     color: popupColor ?? "#ffe18a",
   });
+  if (mob.isGolem && mob.mithrilDrop > 0) {
+    world.popups.push({
+      pos: { x: mob.pos.x, y: mob.pos.y - 14 },
+      text: `+${mob.mithrilDrop} ✦`,
+      lifeMs: 950,
+      ageMs: 0,
+      color: "#ffd76b",
+      size: mob.isMajor ? 22 : 16,
+    });
+  }
   hooks.onKill(mob.mithrilDrop);
 }

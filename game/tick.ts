@@ -250,6 +250,16 @@ function onMobKilledBySword(world: World, mob: Mob, crit: boolean, sEff: typeof 
     color: sEff.effects.popupColor ?? "#ffe18a",
     size: crit ? 28 : 20,
   });
+  if (mob.isGolem && mob.mithrilDrop > 0) {
+    world.popups.push({
+      pos: { x: mob.pos.x, y: mob.pos.y - 14 },
+      text: `+${mob.mithrilDrop} ✦`,
+      lifeMs: 950,
+      ageMs: 0,
+      color: "#ffd76b",
+      size: mob.isMajor ? 22 : 16,
+    });
+  }
 
   const count = BALANCE.juice.particlesPerKill;
   for (let i = 0; i < count; i++) {

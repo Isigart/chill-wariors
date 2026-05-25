@@ -311,6 +311,16 @@ function detonate(
       ageMs: 0,
       color: "#ff8a3d",
     });
+    if (mob.isGolem && mob.mithrilDrop > 0) {
+      world.popups.push({
+        pos: { x: mob.pos.x, y: mob.pos.y - 14 },
+        text: `+${mob.mithrilDrop} ✦`,
+        lifeMs: 950,
+        ageMs: 0,
+        color: "#ffd76b",
+        size: mob.isMajor ? 22 : 16,
+      });
+    }
     // Propagation T4 brasier : si le mob meurt en feu, propage à ses voisins.
     if (mob.burnPropagationRadius && mob.burnDps > 0 && world.nowMs < mob.burnUntilMs) {
       const pr = mob.burnPropagationRadius;
@@ -351,6 +361,16 @@ function tickBurn(world: World, dtMs: number, hooks: TickHooks) {
         ageMs: 0,
         color: "#ff8a3d",
       });
+      if (mob.isGolem && mob.mithrilDrop > 0) {
+        world.popups.push({
+          pos: { x: mob.pos.x, y: mob.pos.y - 14 },
+          text: `+${mob.mithrilDrop} ✦`,
+          lifeMs: 950,
+          ageMs: 0,
+          color: "#ffd76b",
+          size: mob.isMajor ? 22 : 16,
+        });
+      }
       // Propagation T4 brasier.
       if (mob.burnPropagationRadius && world.nowMs < mob.burnUntilMs) {
         const pr = mob.burnPropagationRadius;
@@ -399,6 +419,16 @@ function tickGroundFires(world: World, dtMs: number, hooks: TickHooks) {
         ageMs: 0,
         color: "#ff8a3d",
       });
+      if (mob.isGolem && mob.mithrilDrop > 0) {
+        world.popups.push({
+          pos: { x: mob.pos.x, y: mob.pos.y - 14 },
+          text: `+${mob.mithrilDrop} ✦`,
+          lifeMs: 950,
+          ageMs: 0,
+          color: "#ffd76b",
+          size: mob.isMajor ? 22 : 16,
+        });
+      }
       hooks.onKill(mob.mithrilDrop);
     }
     const deadIds = new Set(killed.map((m) => m.id));
