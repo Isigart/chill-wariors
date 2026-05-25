@@ -183,6 +183,10 @@ export default function GameCanvas() {
         w.equipped = s.progression.equipped;
       }
 
+      // Sync trempage de l'arme équipée (sert au rendu glow/halo).
+      const eqTr = s.progression.trempage[s.progression.equipped] ?? {};
+      w.equippedTrempage = { ...eqTr };
+
       // Sync kills totaux pour le scaling de difficulté idle.
       if (w.totalKills !== s.kills) {
         w.totalKills = s.kills;

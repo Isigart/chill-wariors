@@ -11,6 +11,7 @@ export function createWorld(w: number, h: number, prog: GameProgression, mode: "
     ctx: { mode, modifiers: {} },
     player: { pos: { x: w / 2, y: h / 2 } },
     totalKills: 0,
+    equippedTrempage: { ...(prog.trempage[prog.equipped] ?? {}) },
     playerHp: 100,
     playerHpMax: 100,
     invulnUntilMs: 0,

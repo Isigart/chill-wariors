@@ -1,7 +1,16 @@
-import { BALANCE, type SwordTierVisual } from "@/lib/balance";
+import { BALANCE, BRANCH_TINT, type SwordTierVisual } from "@/lib/balance";
 import type { World } from "./types";
 
 const TWO_PI = Math.PI * 2;
+
+/** Convertit un hex #RRGGBB en rgba(..., a) — pour les gradients de trempage. */
+function hexAlpha(hex: string, a: number): string {
+  if (!hex.startsWith("#") || hex.length < 7) return `rgba(255,255,255,${a})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
 
 export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   const { w, h } = world.viewport;
@@ -165,6 +174,46 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
+  }
+
+  // 7.5 Trempage : halo (T50+) — bloom large pulsant autour du joueur.
+  //                 glow (T10+) — petite aura serrée autour du joueur/arme.
+  // Une branche à T50+ déclenche les DEUX (halo + glow). Stack par branche éligible.
+  const trempage = world.equippedTrempage;
+  const tints = BRANCH_TINT[world.equipped] as Record<string, string> | undefined;
+  if (tints) {
+    const pulse = 0.5 + 0.5 * Math.sin(world.nowMs / 420);
+    // Halos d'abord (couche la plus large, dessous).
+    for (const branch of Object.keys(trempage)) {
+      const lvl = trempage[branch];
+      if (lvl < 50) continue;
+      const tint = tints[branch];
+      if (!tint) continue;
+      const r = 90 + 18 * pulse;
+      const grad = ctx.createRadialGradient(px, py, BALANCE.player.radius, px, py, r);
+      grad.addColorStop(0, hexAlpha(tint, 0.13));
+      grad.addColorStop(0.55, hexAlpha(tint, 0.07));
+      grad.addColorStop(1, hexAlpha(tint, 0));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, TWO_PI);
+      ctx.fill();
+    }
+    // Glows ensuite (couche plus serrée, au-dessus).
+    for (const branch of Object.keys(trempage)) {
+      const lvl = trempage[branch];
+      if (lvl < 10) continue;
+      const tint = tints[branch];
+      if (!tint) continue;
+      const r = 40;
+      const grad = ctx.createRadialGradient(px, py, BALANCE.player.radius * 0.4, px, py, r);
+      grad.addColorStop(0, hexAlpha(tint, 0.22));
+      grad.addColorStop(1, hexAlpha(tint, 0));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, TWO_PI);
+      ctx.fill();
+    }
   }
 
   // 8. Perso.

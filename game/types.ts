@@ -152,6 +152,11 @@ export interface World {
   player: Player;
   /** Kills cumulés (synchronisé depuis le store) — sert au scaling idle. */
   totalKills: number;
+  /**
+   * Niveaux de trempage de l'arme équipée par branche. Synchronisé depuis le
+   * store. Sert au rendu des visuels de trempage (T10 = glow, T50 = halo).
+   */
+  equippedTrempage: Record<string, number>;
   /** HP joueur (instance uniquement). */
   playerHp: number;
   playerHpMax: number;
