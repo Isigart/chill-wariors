@@ -455,10 +455,47 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
 
   ctx.restore();
 
+  // 12 bis. Submersion : overlay stun (gris) + halo immunité (or).
+  const subState = world.submersion;
+  const isStun = subState.stunUntilMs > world.nowMs;
+  const isImmunity = !isStun && subState.immunityUntilMs > world.nowMs;
+  if (isStun) {
+    // Overlay gris bleuté translucide.
+    ctx.fillStyle = "rgba(40, 40, 50, 0.35)";
+    ctx.fillRect(0, 0, w, h);
+    // Étoiles confuses tournantes au-dessus du joueur.
+    const cx = world.player.pos.x;
+    const cy = world.player.pos.y - BALANCE.player.radius - 18;
+    const t = world.nowMs / 250;
+    for (let i = 0; i < 3; i++) {
+      const a = t + (i * Math.PI * 2) / 3;
+      const sx = cx + Math.cos(a) * 12;
+      const sy = cy + Math.sin(a) * 6;
+      ctx.fillStyle = "#e8c878";
+      ctx.font = "bold 14px ui-monospace, Menlo, Consolas, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("✦", sx, sy);
+    }
+  } else if (isImmunity) {
+    // Halo doré pulsant autour du joueur.
+    const px = world.player.pos.x;
+    const py = world.player.pos.y;
+    const pulse = 0.5 + 0.5 * Math.sin(world.nowMs / 350);
+    const r = 38 + 4 * pulse;
+    const grad = ctx.createRadialGradient(px, py, BALANCE.player.radius * 0.6, px, py, r);
+    grad.addColorStop(0, "rgba(232, 200, 120, 0.4)");
+    grad.addColorStop(1, "rgba(232, 200, 120, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, TWO_PI);
+    ctx.fill();
+  }
+
   // 13. Flash overlay (level up, crit).
   if (world.flashMs > 0) {
     const fa = Math.min(0.4, world.flashMs / 200);
-    ctx.fillStyle = `rgba(255,255,255,${fa})`;
+    ctx.fillStyle = `rgba(232, 200, 120, ${fa})`;
     ctx.fillRect(0, 0, w, h);
   }
 }

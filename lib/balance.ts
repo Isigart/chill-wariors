@@ -178,6 +178,28 @@ export const BALANCE = {
     maxDifficultyTier: 50,
   },
 
+  /** Submersion (v0.9) — système transversal idle + instance. */
+  submersion: {
+    /** Seuil de stun. */
+    thresholdStun: 100,
+    /** +N par contact mob/perso (par seconde de contact, cumulatif si plusieurs mobs). */
+    hitContribution: 1,
+    /** -N/s de décroissance auto quand aucun mob ne touche le perso. */
+    decayPerSec: 2,
+    /** Durée du stun (ms). */
+    stunDurationMs: 10000,
+    /** Pendant le stun, les armes tournent / tirent à X × leur cadence normale. */
+    stunWeaponEfficiency: 0.5,
+    /** Onde de choc à la fin du stun : rayon, knockback, dégâts. */
+    endOfStunWaveRadius: 300,
+    endOfStunWaveDamage: 0,
+    endOfStunWaveKnockback: 250,
+    /** Durée du halo de fin de stun (ms). Visuel uniquement. */
+    waveLifeMs: 600,
+    /** Fenêtre d'immunité post-stun : la jauge ne peut pas monter. */
+    immunityDurationMs: 5000,
+  },
+
   /** Drop des Clefs de Mine (v0.8 beta) : décisions design Pile A. */
   keys: {
     /** Taux de drop par mob tué en mode idle. */

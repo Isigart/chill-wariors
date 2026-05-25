@@ -5,6 +5,7 @@ import { applyKnockback, rollCrit, triggerExplosion } from "./effects";
 import { tickBow } from "./bow";
 import { tickFireWand } from "./fireWand";
 import { tickInstanceWaves, tickPlayerContact } from "./instance";
+import { tickSubmersion } from "./submersion";
 
 const TRAIL_LIFE_MS = 180;
 const TRAIL_SAMPLE_MS = 16;
@@ -52,6 +53,10 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     if (died) return; // Skip combat tick si mort — la modale altar prend le relais.
   }
 
+  // Submersion (idle + instance) : ajuste la jauge, déclenche stun/onde/immunité.
+  const subResult = tickSubmersion(world, dtMs);
+  const weff = subResult.weaponEfficiency;
+
   /* ----- ÉPÉE (équipée seulement) ----- */
 
   const swordActive = world.equipped === "sword";
@@ -62,7 +67,7 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     world.phantomTrail.length = 0;
   }
   const a0 = world.sword.angle;
-  const a1 = swordActive ? (a0 + sEff.rotationSpeed * dtSec) % TWO_PI : a0;
+  const a1 = swordActive ? (a0 + sEff.rotationSpeed * dtSec * weff) % TWO_PI : a0;
   world.sword.angle = a1;
   const deltaA = ((a1 - a0) % TWO_PI + TWO_PI) % TWO_PI;
 

@@ -159,6 +159,15 @@ export interface World {
   equippedTrempage: Record<string, number>;
   /** Préférence utilisateur : activer/désactiver les tremblements d'écran. */
   shakeEnabled: boolean;
+  /** Submersion (v0.9) — idle + instance. */
+  submersion: {
+    /** Valeur courante de la jauge (0 .. thresholdStun). */
+    value: number;
+    /** Timestamp (nowMs) jusqu'auquel le perso est stun. 0 = pas stun. */
+    stunUntilMs: number;
+    /** Timestamp (nowMs) jusqu'auquel le perso est immunisé (jauge gelée). */
+    immunityUntilMs: number;
+  };
   /** HP joueur (instance uniquement). */
   playerHp: number;
   playerHpMax: number;

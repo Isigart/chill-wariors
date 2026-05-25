@@ -22,6 +22,17 @@ export default function HUD() {
   const hpRatio = playerHpMax > 0 ? Math.max(0, playerHp / playerHpMax) : 0;
   const idleTier = idleMobStats(kills).tier;
   const mineKeys = useGame((s) => s.mineKeys);
+  const submersion = useGame((s) => s.submersion);
+  const subPct = Math.min(100, Math.round((submersion.value / 100) * 100));
+  const subColor =
+    submersion.state === "stun"
+      ? "#a83020"
+      : subPct >= 80
+      ? "#c8401a"
+      : subPct >= 50
+      ? "#e8c878"
+      : "#d8d4c0";
+  const subFlashing = subPct >= 80 && submersion.state !== "stun";
 
   return (
     <>
@@ -41,7 +52,53 @@ export default function HUD() {
             </div>
           )}
         </div>
+
+        {/* Jauge de submersion (apparaît dès qu'il y a contact ou stun/immunité) */}
+        {(submersion.value > 0 || submersion.state !== "normal") && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[8px] tracking-[0.25em] text-white/40 sm:text-[9px]">
+                {submersion.state === "stun"
+                  ? "STUN"
+                  : submersion.state === "immunity"
+                  ? "IMMUNITÉ"
+                  : "SUBMERSION"}
+              </div>
+              <div className="relative h-1.5 w-28 overflow-hidden rounded-full border border-amber-100/15 bg-black/40 sm:w-36">
+                <div
+                  className="absolute inset-y-0 left-0 transition-[width] duration-100"
+                  style={{
+                    width:
+                      submersion.state === "immunity"
+                        ? "0%"
+                        : submersion.state === "stun"
+                        ? "100%"
+                        : `${subPct}%`,
+                    background: subColor,
+                    boxShadow: subFlashing ? `0 0 8px ${subColor}` : undefined,
+                    animation: subFlashing ? "subPulse 0.6s ease-in-out infinite" : undefined,
+                  }}
+                />
+              </div>
+              {submersion.state !== "normal" && (
+                <div
+                  className="text-[8px] tabular-nums tracking-[0.2em]"
+                  style={{ color: submersion.state === "stun" ? "#ff8080" : "#e8c878" }}
+                >
+                  {Math.ceil(submersion.msLeft / 1000)}s
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx global>{`
+        @keyframes subPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
 
       {/* En haut à droite : mithril (total live en instance) + clefs de mine. */}
       <div className="pointer-events-none absolute right-2 top-2 flex select-none flex-col items-end gap-1 font-mono sm:right-4 sm:top-4 sm:gap-1.5">

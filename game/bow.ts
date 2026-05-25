@@ -15,7 +15,12 @@ export function tickBow(world: World, dtMs: number, hooks: TickHooks) {
   const bowEquipped = world.equipped === "bow";
 
   // Cadence : si T5 cadence (continuousStream), on tire ~16 Hz peu importe le fireRate.
-  const effectiveFireRate = eff.effects.continuousStream ? 60 : eff.fireRateMs;
+  // Si stun en cours, l'arc tire à 50% (cadence divisée par stunWeaponEfficiency).
+  const stunWeff = world.submersion.stunUntilMs > world.nowMs
+    ? 0.5
+    : 1;
+  const baseFireRate = eff.effects.continuousStream ? 60 : eff.fireRateMs;
+  const effectiveFireRate = baseFireRate / stunWeff;
 
   if (bowEquipped && world.nowMs - world.bow.lastShotAt >= effectiveFireRate) {
     const target = findNearestMob(world);

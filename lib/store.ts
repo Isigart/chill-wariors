@@ -63,6 +63,13 @@ type GameStore = {
   /** Préférences utilisateur persistées. */
   settings: GameSettings;
 
+  /** Snapshot transitoire de la submersion (mis à jour par GameCanvas). */
+  submersion: {
+    value: number;
+    state: "normal" | "stun" | "immunity";
+    msLeft: number;
+  };
+
   addKill: () => void;
   setTraining: (weapon: WeaponKind, branch: string) => void;
   setEquipped: (weapon: WeaponKind) => void;
@@ -93,6 +100,9 @@ type GameStore = {
   // --- Settings ---
   setSettings: (patch: Partial<GameSettings>) => void;
   toggleScreenShake: () => void;
+
+  // --- Submersion snapshot ---
+  setSubmersionSnapshot: (value: number, state: "normal" | "stun" | "immunity", msLeft: number) => void;
 
   // --- Debug ---
   devMaxAllWeapons: () => void;
@@ -127,6 +137,7 @@ export const useGame = create<GameStore>((set, get) => ({
   lastTrempage: null,
   panel: "none",
   settings: { screenShake: true },
+  submersion: { value: 0, state: "normal", msLeft: 0 },
 
   addKill: () => set((s) => ({ kills: s.kills + 1 })),
 
@@ -251,6 +262,20 @@ export const useGame = create<GameStore>((set, get) => ({
 
   openPanel: (p) => set({ panel: p }),
   closePanel: () => set({ panel: "none" }),
+
+  setSubmersionSnapshot: (value, state, msLeft) =>
+    set((s) => {
+      // Évite de notifier les subscribers si rien n'a vraiment bougé.
+      const prev = s.submersion;
+      if (
+        Math.abs(prev.value - value) < 0.5 &&
+        prev.state === state &&
+        Math.abs(prev.msLeft - msLeft) < 50
+      ) {
+        return {};
+      }
+      return { submersion: { value, state, msLeft } };
+    }),
 
   setSettings: (patch) =>
     set((s) => ({ settings: { ...s.settings, ...patch } })),

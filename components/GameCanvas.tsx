@@ -57,9 +57,13 @@ export default function GameCanvas() {
         tickWorld(w, dt, {
           onKill: (mithril, pos) => {
             s.addKill();
-            s.awardXp(1);
-            if (s.mode === "instance" && typeof mithril === "number" && mithril > 0) {
-              s.addMithril(mithril);
+            // Pas de XP ni de mithril pendant le stun (submersion).
+            const isStunned = w.submersion.stunUntilMs > w.nowMs;
+            if (!isStunned) {
+              s.awardXp(1);
+              if (s.mode === "instance" && typeof mithril === "number" && mithril > 0) {
+                s.addMithril(mithril);
+              }
             }
             // Drop des Clefs de Mine en idle (RNG, gated par 1 arme T5/T5/T5).
             if (s.mode === "idle") {
@@ -92,6 +96,19 @@ export default function GameCanvas() {
       }
 
       renderWorld(ctx, w);
+
+      // Sync submersion → store pour le HUD (action no-op si rien n'a bougé).
+      const sub = w.submersion;
+      let subState: "normal" | "stun" | "immunity" = "normal";
+      let msLeft = 0;
+      if (sub.stunUntilMs > w.nowMs) {
+        subState = "stun";
+        msLeft = sub.stunUntilMs - w.nowMs;
+      } else if (sub.immunityUntilMs > w.nowMs) {
+        subState = "immunity";
+        msLeft = sub.immunityUntilMs - w.nowMs;
+      }
+      s.setSubmersionSnapshot(sub.value, subState, msLeft);
 
       saveAccumRef.current += dt;
       if (saveAccumRef.current >= 2000) {

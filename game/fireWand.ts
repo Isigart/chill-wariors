@@ -15,7 +15,10 @@ export function tickFireWand(world: World, dtMs: number, hooks: TickHooks) {
   const eff = world.fireWand.effective;
   const wandEquipped = world.equipped === "fireWand";
 
-  const effectiveFireRate = eff.effects.continuousStorm ? 80 : eff.fireRateMs;
+  // Stun → cadence × 0.5 (intervalle × 2).
+  const stunWeff = world.submersion.stunUntilMs > world.nowMs ? 0.5 : 1;
+  const baseFireRate = eff.effects.continuousStorm ? 80 : eff.fireRateMs;
+  const effectiveFireRate = baseFireRate / stunWeff;
 
   if (wandEquipped && world.nowMs - world.fireWand.lastShotAt >= effectiveFireRate) {
     const target = findNearestMob(world, eff.range);

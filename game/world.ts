@@ -13,6 +13,7 @@ export function createWorld(w: number, h: number, prog: GameProgression, mode: "
     totalKills: 0,
     equippedTrempage: { ...(prog.trempage[prog.equipped] ?? {}) },
     shakeEnabled: true,
+    submersion: { value: 0, stunUntilMs: 0, immunityUntilMs: 0 },
     playerHp: 100,
     playerHpMax: 100,
     invulnUntilMs: 0,
