@@ -16,7 +16,6 @@ export default function HUD() {
   const mithril = useGame((s) => s.mithril);
   const mithrilInRun = useGame((s) => s.mithrilInRun);
   const instanceWave = useGame((s) => s.instanceWave);
-  const enterInstance = useGame((s) => s.enterInstance);
   const endRun = useGame((s) => s.endRun);
 
   const hpRatio = playerHpMax > 0 ? Math.max(0, playerHp / playerHpMax) : 0;
@@ -31,8 +30,9 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* En haut à droite : mithril (total live en instance) + bouton mode */}
-      <div className="pointer-events-auto absolute right-2 top-2 flex select-none flex-col items-end gap-1.5 font-mono sm:right-4 sm:top-4 sm:gap-2">
+      {/* En haut à droite : mithril (total live en instance). Le bouton mine
+          est maintenant dans l'onglet Donjon (NavTabs). */}
+      <div className="pointer-events-none absolute right-2 top-2 flex select-none flex-col items-end gap-1.5 font-mono sm:right-4 sm:top-4 sm:gap-2">
         <div className="text-right">
           <div className="text-[9px] tracking-[0.3em] text-amber-300/60 sm:text-[10px]">MITHRIL</div>
           <div className="text-lg font-bold tabular-nums leading-none text-amber-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-2xl">
@@ -44,15 +44,6 @@ export default function HUD() {
             </div>
           )}
         </div>
-        {mode === "idle" && (
-          <button
-            onClick={enterInstance}
-            className="rounded-md border-2 border-amber-400/40 bg-amber-400/[0.05] px-2 py-1 text-[10px] font-bold tracking-[0.15em] text-amber-200 transition hover:border-amber-400/80 hover:bg-amber-400/[0.12] active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-xs sm:tracking-[0.2em]"
-          >
-            <span className="sm:hidden">⛏ MINE</span>
-            <span className="hidden sm:inline">⛏ ENTRER DANS LA MINE</span>
-          </button>
-        )}
       </div>
 
       {/* Centre-haut : indicateur de vague d'instance */}

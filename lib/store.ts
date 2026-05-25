@@ -9,6 +9,7 @@ import {
 import { BRANCHES_OF, TREMPAGE, type WeaponKind } from "@/lib/balance";
 
 export type GameMode = "idle" | "instance" | "altar";
+export type PanelKind = "none" | "inventory" | "dungeon";
 
 export interface TrempageResult {
   success: boolean;
@@ -39,6 +40,8 @@ type GameStore = {
   trempageAttempts: number;
   /** Dernier résultat de trempage (transitoire, consommé par l'UI pour l'anim). */
   lastTrempage: TrempageResult | null;
+  /** Panneau ouvert (inventaire, donjon) — null si aucun. */
+  panel: PanelKind;
 
   addKill: () => void;
   setTraining: (weapon: WeaponKind, branch: string) => void;
@@ -57,6 +60,10 @@ type GameStore = {
   // --- Trempage ---
   attemptTrempage: (weapon: WeaponKind, branch: string, mithrilCost: number) => TrempageResult | null;
   consumeLastTrempage: () => void;
+
+  // --- Panels (navigation onglets) ---
+  openPanel: (p: PanelKind) => void;
+  closePanel: () => void;
 
   // --- Debug ---
   devMaxAllWeapons: () => void;
@@ -85,6 +92,7 @@ export const useGame = create<GameStore>((set, get) => ({
   keys: emptyKeys(),
   trempageAttempts: 0,
   lastTrempage: null,
+  panel: "none",
 
   addKill: () => set((s) => ({ kills: s.kills + 1 })),
 
@@ -120,6 +128,7 @@ export const useGame = create<GameStore>((set, get) => ({
       playerHp: s.playerHpMax,
       mithrilInRun: 0,
       instanceWave: 1,
+      panel: "none",
     })),
 
   damagePlayer: (amount) =>
@@ -188,6 +197,9 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   consumeLastTrempage: () => set({ lastTrempage: null }),
+
+  openPanel: (p) => set({ panel: p }),
+  closePanel: () => set({ panel: "none" }),
 
   devMaxAllWeapons: () => {
     const prev = get().progression;

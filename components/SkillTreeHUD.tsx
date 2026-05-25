@@ -11,10 +11,30 @@ import {
   MAX_TIER,
   WEAPON_LABEL,
   WEAPON_TINT,
-  WEAPONS,
   type WeaponKind,
 } from "@/lib/balance";
 import { gaugeOf } from "@/game/progression";
+
+/** Tabs onglets (inventaire, donjon) à côté de la rangée d'arme. */
+function NavTabs() {
+  const openPanel = useGame((s) => s.openPanel);
+  return (
+    <div className="flex items-center gap-1.5 sm:gap-2">
+      <button
+        onClick={() => openPanel("inventory")}
+        className="rounded-md border border-white/15 bg-black/30 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.15em] text-white/70 transition hover:border-white/40 hover:text-white active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-[11px] sm:tracking-[0.2em]"
+      >
+        🎒 INVENTAIRE
+      </button>
+      <button
+        onClick={() => openPanel("dungeon")}
+        className="rounded-md border border-amber-400/30 bg-amber-400/[0.05] px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.15em] text-amber-200 transition hover:border-amber-400/70 hover:bg-amber-400/[0.12] active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-[11px] sm:tracking-[0.2em]"
+      >
+        ⛏ DONJON
+      </button>
+    </div>
+  );
+}
 
 /**
  * HUD non-bloquant : pour chaque arme (épée, arc), une rangée de 3 voies.
@@ -54,18 +74,21 @@ export default function SkillTreeHUD() {
   // En instance / altar : on cache l'arbre (l'UI est différente).
   if (mode !== "idle") return null;
 
+  // On n'affiche QUE l'arme équipée. Pour switch, passer par l'onglet Inventaire.
+  const equippedWeapon = progression.equipped;
+
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-2 flex flex-col items-center gap-1 px-1 font-mono sm:bottom-3 sm:gap-2">
-      {WEAPONS.map((weapon) => (
-        <WeaponRow
-          key={weapon}
-          weapon={weapon}
-          equipped={progression.equipped === weapon}
-          training={progression.equipped === weapon ? progression.trainingBranch : null}
-          onSelect={(branch) => setTraining(weapon, branch)}
-          flashing={flashing?.weapon === weapon ? flashing : null}
-        />
-      ))}
+      <WeaponRow
+        key={equippedWeapon}
+        weapon={equippedWeapon}
+        equipped
+        training={progression.trainingBranch}
+        onSelect={(branch) => setTraining(equippedWeapon, branch)}
+        flashing={flashing?.weapon === equippedWeapon ? flashing : null}
+      />
+      {/* Tabs onglets juste sous la rangée d'arme */}
+      <NavTabs />
 
       <style jsx global>{`
         @keyframes chillFloatUp {

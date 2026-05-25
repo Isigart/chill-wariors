@@ -2,6 +2,8 @@ import GameCanvas from "@/components/GameCanvas";
 import HUD from "@/components/HUD";
 import SkillTreeHUD from "@/components/SkillTreeHUD";
 import AltarUI from "@/components/AltarUI";
+import InventoryPanel from "@/components/InventoryPanel";
+import DungeonPanel from "@/components/DungeonPanel";
 import DevPanel from "@/components/DevPanel";
 
 export default function Page() {
@@ -10,6 +12,8 @@ export default function Page() {
       <GameCanvas />
       <HUD />
       <SkillTreeHUD />
+      <InventoryPanel />
+      <DungeonPanel />
       <AltarUI />
       <DevPanel />
     </main>
