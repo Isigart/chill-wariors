@@ -1,17 +1,23 @@
-import { BALANCE } from "@/lib/balance";
+import { BALANCE, idleMobStats } from "@/lib/balance";
 import type { World } from "./types";
 
+/**
+ * Spawn idle continu, avec scaling de difficulté basé sur les kills cumulés.
+ * Au-delà de `BALANCE.mob.difficultyTierEvery` kills, les nouveaux mobs ont
+ * un peu plus de HP, sont plus rapides, et le spawn rate accélère.
+ */
 export function tickSpawn(world: World, dtMs: number) {
+  const stats = idleMobStats(world.totalKills);
   const dtSec = dtMs / 1000;
-  world.spawnAccum += dtSec * BALANCE.mob.spawnRatePerSec;
+  world.spawnAccum += dtSec * stats.spawnRate;
 
   while (world.spawnAccum >= 1) {
     world.spawnAccum -= 1;
-    spawnOneMob(world);
+    spawnOneMob(world, stats);
   }
 }
 
-function spawnOneMob(world: World) {
+function spawnOneMob(world: World, stats: ReturnType<typeof idleMobStats>) {
   const { w, h } = world.viewport;
   const radius = (Math.hypot(w, h) / 2) * BALANCE.mob.spawnDistance;
   const angle = Math.random() * Math.PI * 2;
@@ -24,10 +30,10 @@ function spawnOneMob(world: World) {
       x: cx + Math.cos(angle) * radius,
       y: cy + Math.sin(angle) * radius,
     },
-    hp: BALANCE.mob.hp,
-    maxHp: BALANCE.mob.hp,
+    hp: stats.hp,
+    maxHp: stats.hp,
     radius: BALANCE.mob.radius,
-    speed: BALANCE.mob.speed,
+    speed: stats.speed,
     weakenedUntilMs: -Infinity,
     weakenMultiplier: 1,
     burnUntilMs: -Infinity,

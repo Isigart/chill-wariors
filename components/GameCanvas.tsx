@@ -166,6 +166,11 @@ export default function GameCanvas() {
         lastEquippedRef.current = s.progression.equipped;
         w.equipped = s.progression.equipped;
       }
+
+      // Sync kills totaux pour le scaling de difficulté idle.
+      if (w.totalKills !== s.kills) {
+        w.totalKills = s.kills;
+      }
     });
     return unsub;
   }, []);

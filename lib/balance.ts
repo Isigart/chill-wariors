@@ -168,6 +168,14 @@ export const BALANCE = {
     radius: 12,
     hp: 1,
     spawnDistance: 1.05,
+    /** Difficulté croissante : 1 tier de mobs toutes les N kills cumulés. */
+    difficultyTierEvery: 200,
+    /** Multiplicateurs par tier (additionnés linéairement). */
+    hpPerTier: 0.5,
+    speedPerTier: 0.03,
+    spawnRatePerTier: 0.05,
+    /** Plafond du tier pour éviter l'absurde aux très haut counts. */
+    maxDifficultyTier: 50,
   },
 
   instance: {
@@ -469,6 +477,25 @@ export interface InstanceWaveSpec {
   speed: number;
   mithril: number;
   radius: number;
+}
+
+/**
+ * Stats d'un mob idle selon les kills cumulés. Difficulté linéaire croissante.
+ *  - tier = floor(kills / difficultyTierEvery), clamp à maxDifficultyTier.
+ *  - hp / speed / spawnRate multipliés selon leurs taux par tier.
+ *
+ * Le HP est entier (mob.hp arrondi). Speed/spawnRate restent fractionnaires
+ * pour préserver une variation douce.
+ */
+export function idleMobStats(totalKills: number): { hp: number; speed: number; spawnRate: number; tier: number } {
+  const raw = Math.floor(Math.max(0, totalKills) / BALANCE.mob.difficultyTierEvery);
+  const tier = Math.min(BALANCE.mob.maxDifficultyTier, raw);
+  return {
+    hp: Math.max(1, Math.round(BALANCE.mob.hp * (1 + tier * BALANCE.mob.hpPerTier))),
+    speed: BALANCE.mob.speed * (1 + tier * BALANCE.mob.speedPerTier),
+    spawnRate: BALANCE.mob.spawnRatePerSec * (1 + tier * BALANCE.mob.spawnRatePerTier),
+    tier,
+  };
 }
 
 /**

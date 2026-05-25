@@ -150,6 +150,8 @@ export interface Shockwave {
 export interface World {
   ctx: CombatContext;
   player: Player;
+  /** Kills cumulés (synchronisé depuis le store) — sert au scaling idle. */
+  totalKills: number;
   /** HP joueur (instance uniquement). */
   playerHp: number;
   playerHpMax: number;

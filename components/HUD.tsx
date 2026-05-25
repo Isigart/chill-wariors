@@ -1,6 +1,7 @@
 "use client";
 
 import { useGame } from "@/lib/store";
+import { idleMobStats } from "@/lib/balance";
 
 /**
  * HUD principal : adapte son contenu selon le mode de jeu.
@@ -19,14 +20,25 @@ export default function HUD() {
   const endRun = useGame((s) => s.endRun);
 
   const hpRatio = playerHpMax > 0 ? Math.max(0, playerHp / playerHpMax) : 0;
+  const idleTier = idleMobStats(kills).tier;
 
   return (
     <>
-      {/* Kills (toujours visible) */}
+      {/* Kills (toujours visible) + tier difficulté en idle */}
       <div className="pointer-events-none absolute left-2 top-2 select-none font-mono sm:left-4 sm:top-4">
-        <div className="text-[9px] tracking-[0.3em] text-white/40 sm:text-[10px]">KILLS</div>
-        <div className="text-2xl font-bold tabular-nums leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-4xl">
-          {kills}
+        <div className="flex items-baseline gap-2">
+          <div>
+            <div className="text-[9px] tracking-[0.3em] text-white/40 sm:text-[10px]">KILLS</div>
+            <div className="text-2xl font-bold tabular-nums leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-4xl">
+              {kills}
+            </div>
+          </div>
+          {mode === "idle" && idleTier > 0 && (
+            <div className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-[9px] tracking-[0.2em] text-white/60 sm:text-[10px]">
+              <span className="text-white/40">TIER&nbsp;</span>
+              <span className="font-bold text-white/90 tabular-nums">{idleTier}</span>
+            </div>
+          )}
         </div>
       </div>
 

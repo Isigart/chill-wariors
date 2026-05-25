@@ -10,6 +10,7 @@ export function createWorld(w: number, h: number, prog: GameProgression, mode: "
   return {
     ctx: { mode, modifiers: {} },
     player: { pos: { x: w / 2, y: h / 2 } },
+    totalKills: 0,
     playerHp: 100,
     playerHpMax: 100,
     invulnUntilMs: 0,
