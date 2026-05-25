@@ -230,10 +230,10 @@ function BranchRow(props: {
             className="w-20 rounded border border-white/15 bg-black/40 px-2 py-1 text-right font-mono text-xs tabular-nums text-amber-100 disabled:opacity-40"
           />
           <button
-            onClick={() => setInjected(max)}
+            onClick={() => setInjected(Math.min(max, TREMPAGE.optimalMithril(target)))}
             disabled={max === 0 || props.disabled}
             className="rounded border border-amber-400/40 bg-amber-400/[0.05] px-2 py-1 font-mono text-[10px] font-bold tracking-[0.2em] text-amber-200 transition hover:border-amber-400 hover:bg-amber-400/[0.15] disabled:opacity-40 disabled:hover:border-amber-400/40 disabled:hover:bg-amber-400/[0.05]"
-            title="Injecter tout le mithril disponible"
+            title="Mithril optimal pour le cap 99% (sans gaspiller)"
           >
             MAX
           </button>

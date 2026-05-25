@@ -421,6 +421,24 @@ export const TREMPAGE = {
   failurePenalty: 10,
   /** Plafond de tentatives par visite à l'autel. */
   maxAttemptsPerVisit: 3,
+  /**
+   * Mithril optimal pour atteindre le cap 99% sur ce niveau visé.
+   * - Si la proba de base est déjà ≥ 99% : 0 mithril.
+   * - Si le cap est inatteignable (niveau trop haut) : saturation pratique
+   *   (~230 mithril, soit 99% du bonus max — au-delà, < 0.01% par mithril).
+   * - Sinon : valeur exacte qui amène pile à 99%.
+   */
+  optimalMithril: (niveauVise: number): number => {
+    const pBase = Math.max(0.05, 1 - niveauVise * 0.01);
+    const needed = 0.99 - pBase;
+    if (needed <= 0) return 0;
+    const inner = 1 - 2 * needed;
+    if (inner <= 0) {
+      // Cap inatteignable — bonus max = 0.5. Vise 99% du bonus.
+      return 230;
+    }
+    return Math.ceil(-50 * Math.log(inner));
+  },
 } as const;
 
 /** Quelle stat est amplifiée par le trempage d'une branche. "inverse" = stat où plus bas = mieux (fireRateMs). */
