@@ -238,9 +238,8 @@ function onMobKilledBySword(world: World, mob: Mob, crit: boolean, sEff: typeof 
     world.lastHitStopAt = world.nowMs;
   }
 
-  if (crit && sEff.visual.whiteFlashOnCrit) {
-    world.flashMs = Math.max(world.flashMs, 80);
-  }
+  // Pas de flash plein écran sur crit — le popup "CRIT" local suffit.
+  // Le flag whiteFlashOnCrit reste dans balance mais n'est plus consommé ici.
 
   world.popups.push({
     pos: { x: mob.pos.x, y: mob.pos.y },
