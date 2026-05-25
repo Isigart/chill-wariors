@@ -8,6 +8,15 @@ export type CombatContext = {
   modifiers: Record<string, number>;
 };
 
+/** État de la vague courante en mode instance. */
+export interface InstanceWaveState {
+  index: number;
+  phase: "spawning" | "cleaning" | "rest";
+  remainingToSpawn: number;
+  spawnAccum: number;
+  restMs: number;
+}
+
 export interface Player {
   pos: Vec2;
 }
@@ -27,6 +36,12 @@ export interface Mob {
   burnDps: number;
   /** Pour propagation T4 brasier : on doit savoir si le mob meurt EN feu. */
   burnPropagationRadius: number;
+  /** Instance only : golem mineur ou majeur. */
+  isGolem: boolean;
+  isMajor: boolean;
+  mithrilDrop: number;
+  /** Dégâts infligés au perso au contact (instance). */
+  contactDamage: number;
 }
 
 export interface Sword {
@@ -135,6 +150,13 @@ export interface Shockwave {
 export interface World {
   ctx: CombatContext;
   player: Player;
+  /** HP joueur (instance uniquement). */
+  playerHp: number;
+  playerHpMax: number;
+  /** ms d'invulnérabilité restantes après un contact. */
+  invulnUntilMs: number;
+  /** Vague d'instance courante (utilisée si ctx.mode === 'instance'). */
+  instanceWave: InstanceWaveState;
   /** Arme actuellement active. Seules les armes équipées tickent. */
   equipped: WeaponKind;
   sword: Sword;
@@ -163,5 +185,12 @@ export interface World {
 }
 
 export interface TickHooks {
-  onKill: () => void;
+  /** Appelé sur kill. En instance, `mithril` peut être > 0 si c'est un golem. */
+  onKill: (mithril?: number) => void;
+  /** Appelé quand le joueur prend un coup en instance. */
+  onPlayerDamage?: (amount: number) => void;
+  /** Appelé quand le joueur meurt (HP ≤ 0). */
+  onPlayerDeath?: () => void;
+  /** Appelé quand une vague d'instance est nettoyée. */
+  onWaveCleared?: (newWave: number) => void;
 }

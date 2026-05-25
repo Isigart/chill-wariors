@@ -6,10 +6,20 @@ import {
 } from "./progression";
 import type { World } from "./types";
 
-export function createWorld(w: number, h: number, prog: GameProgression): World {
+export function createWorld(w: number, h: number, prog: GameProgression, mode: "idle" | "instance" = "idle"): World {
   return {
-    ctx: { mode: "idle", modifiers: {} },
+    ctx: { mode, modifiers: {} },
     player: { pos: { x: w / 2, y: h / 2 } },
+    playerHp: 100,
+    playerHpMax: 100,
+    invulnUntilMs: 0,
+    instanceWave: {
+      index: 1,
+      phase: "spawning",
+      remainingToSpawn: 0,
+      spawnAccum: 0,
+      restMs: 0,
+    },
     equipped: prog.equipped,
     sword: {
       angle: 0,

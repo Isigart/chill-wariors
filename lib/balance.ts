@@ -170,6 +170,19 @@ export const BALANCE = {
     spawnDistance: 1.05,
   },
 
+  instance: {
+    playerHpMax: 100,
+    /** Cooldown d'invulnérabilité après contact d'un golem (ms). */
+    invulnAfterHitMs: 500,
+    /** Rayon d'un golem mineur / majeur. */
+    minorRadius: 16,
+    majorRadius: 28,
+    /** Délai entre vagues (ms). */
+    restMs: 1500,
+    /** Distance de spawn (multiplicateur de hypot/2). */
+    spawnDistance: 1.05,
+  },
+
   juice: {
     screenShakeOnKill: 3,
     screenShakeDecay: 8,
@@ -379,6 +392,69 @@ export const BRANCH_LABEL: Record<WeaponKind, Record<string, string>> = {
     lancers: "LANCERS",
   },
 };
+
+/** Description d'une vague d'instance. */
+export interface InstanceWaveSpec {
+  kind: "minor" | "major";
+  count: number;
+  hp: number;
+  damage: number;
+  speed: number;
+  mithril: number;
+  radius: number;
+}
+
+/**
+ * Calcule la spec de la vague `idx` (1-indexed).
+ * Vagues majeures : tous les 6 (v6, v12, v18, ...).
+ * Mineures entre, scaling par "ère" de 5 vagues.
+ * À partir de l'ère 4 (v19+), scaling exponentiel.
+ */
+export function instanceWaveSpec(idx: number): InstanceWaveSpec {
+  const isMajor = idx % 6 === 0;
+
+  if (isMajor) {
+    const tier = idx / 6;
+    const hp = 100 * Math.pow(2.5, tier - 1);
+    const damage = 2 + (tier - 1);
+    const mithril = Math.round(25 * Math.pow(2, tier - 1));
+    return {
+      kind: "major",
+      count: 1,
+      hp,
+      damage,
+      speed: 40,
+      mithril,
+      radius: 28,
+    };
+  }
+
+  const minorTier = Math.floor((idx - 1) / 6) + 1;
+  const posInTier = ((idx - 1) % 6) + 1;
+  const hpRanges: ReadonlyArray<[number, number]> = [
+    [10, 20],
+    [30, 50],
+    [70, 120],
+  ];
+  const baseRange = hpRanges[minorTier - 1];
+  const hpRange: [number, number] = baseRange
+    ? baseRange
+    : [70 * Math.pow(1.4, minorTier - 3), 120 * Math.pow(1.4, minorTier - 3)];
+  const t = (posInTier - 1) / 4;
+  const hp = Math.round(hpRange[0] + t * (hpRange[1] - hpRange[0]));
+  const damage = minorTier <= 3 ? [1, 2, 3][minorTier - 1] : Math.ceil(3 * Math.pow(1.1, minorTier - 3));
+  const speed = minorTier <= 3 ? [50, 55, 60][minorTier - 1] : 60;
+  const mithril = minorTier <= 3 ? [1, 2, 4][minorTier - 1] : Math.ceil(4 * Math.pow(1.25, minorTier - 3));
+  return {
+    kind: "minor",
+    count: 8 + minorTier * 2,
+    hp,
+    damage,
+    speed,
+    mithril,
+    radius: 16,
+  };
+}
 
 export const BRANCH_ICON: Record<WeaponKind, Record<string, string>> = {
   sword: {

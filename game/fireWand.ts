@@ -365,7 +365,7 @@ function tickBurn(world: World, dtMs: number, hooks: TickHooks) {
           }
         }
       }
-      hooks.onKill();
+      hooks.onKill(mob.mithrilDrop);
     }
     const deadIds = new Set(killed.map((m) => m.id));
     world.mobs = world.mobs.filter((m) => !deadIds.has(m.id));
@@ -399,7 +399,7 @@ function tickGroundFires(world: World, dtMs: number, hooks: TickHooks) {
         ageMs: 0,
         color: "#ff8a3d",
       });
-      hooks.onKill();
+      hooks.onKill(mob.mithrilDrop);
     }
     const deadIds = new Set(killed.map((m) => m.id));
     world.mobs = world.mobs.filter((m) => !deadIds.has(m.id));

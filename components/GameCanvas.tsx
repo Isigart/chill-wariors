@@ -35,8 +35,9 @@ export default function GameCanvas() {
     setSize();
 
     loadSave();
+    const initialMode = useGame.getState().mode === "instance" ? "instance" : "idle";
     const prog = useGame.getState().progression;
-    const world = createWorld(window.innerWidth, window.innerHeight, prog);
+    const world = createWorld(window.innerWidth, window.innerHeight, prog, initialMode);
     worldRef.current = world;
 
     window.addEventListener("resize", setSize);
@@ -51,12 +52,28 @@ export default function GameCanvas() {
       const w = worldRef.current!;
       const s = useGame.getState();
 
-      tickWorld(w, dt, {
-        onKill: () => {
-          s.addKill();
-          s.awardXp(1);
-        },
-      });
+      // En mode altar : pas de tick combat, on garde la scène figée derrière la modale.
+      if (s.mode !== "altar") {
+        tickWorld(w, dt, {
+          onKill: (mithril) => {
+            s.addKill();
+            s.awardXp(1);
+            if (s.mode === "instance" && typeof mithril === "number" && mithril > 0) {
+              s.addMithril(mithril);
+            }
+          },
+          onPlayerDamage: (amount) => {
+            s.damagePlayer(amount);
+          },
+          onPlayerDeath: () => {
+            // Mort = fin de run → mode altar.
+            s.endRun();
+          },
+          onWaveCleared: (newWave) => {
+            s.setInstanceWave(newWave);
+          },
+        });
+      }
 
       renderWorld(ctx, w);
 
@@ -78,14 +95,53 @@ export default function GameCanvas() {
     };
   }, []);
 
-  // Recache les stats effectives des 2 armes quand leurs tiers changent,
-  // ET sync l'arme équipée du store vers le world.
+  // Sync world.equipped + effective stats quand le store change.
   const lastTiersKeyRef = useRef<string>("");
   const lastEquippedRef = useRef<string>("");
+  const lastModeRef = useRef<string>("");
   useEffect(() => {
     const unsub = useGame.subscribe((s) => {
       const w = worldRef.current;
       if (!w) return;
+
+      // Mode change : reset le world dans le bon mode.
+      if (s.mode !== lastModeRef.current) {
+        lastModeRef.current = s.mode;
+        if (s.mode === "instance") {
+          // Reset l'arène pour le combat actif.
+          w.ctx.mode = "instance";
+          w.mobs = [];
+          w.arrows = [];
+          w.fireProjectiles = [];
+          w.groundFires = [];
+          w.pendingExplosions = [];
+          w.pendingShots = [];
+          w.particles = [];
+          w.popups = [];
+          w.trail = [];
+          w.shockwaves = [];
+          w.phantomTrail = [];
+          w.spawnAccum = 0;
+          w.playerHp = s.playerHpMax;
+          w.playerHpMax = s.playerHpMax;
+          w.invulnUntilMs = 0;
+          w.instanceWave = { index: 1, phase: "spawning", remainingToSpawn: 0, spawnAccum: 0, restMs: 0 };
+        } else if (s.mode === "idle") {
+          // Retour idle : on vide les golems, on reprend le spawn continu.
+          w.ctx.mode = "idle";
+          w.mobs = [];
+          w.arrows = [];
+          w.fireProjectiles = [];
+          w.groundFires = [];
+          w.pendingExplosions = [];
+          w.pendingShots = [];
+          w.particles = [];
+          w.popups = [];
+          w.spawnAccum = 0;
+        }
+        // En 'altar' on ne touche pas au world — la scène reste figée.
+      }
+
       const swT = s.progression.weapons.sword.tier;
       const bwT = s.progression.weapons.bow.tier;
       const fwT = s.progression.weapons.fireWand.tier;

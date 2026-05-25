@@ -6,14 +6,29 @@ const TWO_PI = Math.PI * 2;
 export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   const { w, h } = world.viewport;
 
-  // 1. Fond.
+  // 1. Fond — différencié selon le mode (idle vs instance).
+  const isInstance = world.ctx.mode === "instance";
+  const bgColor = isInstance ? "#170d10" : "#0a0a0f";
   const a = BALANCE.juice.clearAlpha;
   if (a >= 1) {
-    ctx.fillStyle = "#0a0a0f";
+    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
   } else {
-    ctx.fillStyle = `rgba(10, 10, 15, ${a})`;
+    ctx.fillStyle = isInstance
+      ? `rgba(23, 13, 16, ${a})`
+      : `rgba(10, 10, 15, ${a})`;
     ctx.fillRect(0, 0, w, h);
+  }
+
+  // 1b. Décor d'ambiance pour l'instance (vignette + filaments rougeâtres).
+  if (isInstance) {
+    ctx.save();
+    const grad = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.2, w / 2, h / 2, Math.max(w, h) * 0.7);
+    grad.addColorStop(0, "rgba(60, 20, 14, 0)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0.7)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
   }
 
   ctx.save();
@@ -186,10 +201,21 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     }
   }
 
-  // 10. Mobs (avec halo si en feu).
+  // 10. Mobs (avec halo si en feu, halo doré si golem majeur).
   for (const mob of world.mobs) {
     const k = mob.hp / Math.max(1, mob.maxHp);
     const burning = world.nowMs < mob.burnUntilMs && mob.burnDps > 0;
+    if (mob.isMajor) {
+      // Halo doré autour des golems majeurs.
+      ctx.save();
+      ctx.shadowColor = "#ffe18a";
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = "rgba(255,225,138,0.18)";
+      ctx.beginPath();
+      ctx.arc(mob.pos.x, mob.pos.y, mob.radius + 6, 0, TWO_PI);
+      ctx.fill();
+      ctx.restore();
+    }
     if (burning) {
       // Halo orange autour du mob en feu.
       ctx.save();
@@ -211,18 +237,23 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
         });
       }
     }
-    ctx.fillStyle = `hsl(0 75% ${40 + k * 20}%)`;
+    if (mob.isGolem) {
+      // Golem : couleur ardoise + texture pierre simplifiée.
+      ctx.fillStyle = mob.isMajor ? `hsl(35 28% ${30 + k * 15}%)` : `hsl(220 8% ${28 + k * 18}%)`;
+    } else {
+      ctx.fillStyle = `hsl(0 75% ${40 + k * 20}%)`;
+    }
     ctx.beginPath();
     ctx.arc(mob.pos.x, mob.pos.y, mob.radius, 0, TWO_PI);
     ctx.fill();
     if (mob.maxHp > 1) {
       const bw = mob.radius * 2;
-      const bh = 3;
+      const bh = mob.isMajor ? 5 : 3;
       const bx = mob.pos.x - bw / 2;
-      const by = mob.pos.y - mob.radius - 6;
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      const by = mob.pos.y - mob.radius - 8;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(bx, by, bw, bh);
-      ctx.fillStyle = "#ff5a5a";
+      ctx.fillStyle = mob.isMajor ? "#ffd24d" : "#ff5a5a";
       ctx.fillRect(bx, by, bw * k, bh);
     }
   }

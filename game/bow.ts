@@ -249,7 +249,6 @@ function findNearestMobFrom(world: World, pos: Vec2): Mob | null {
 }
 
 function onMobKilledByArrow(world: World, mob: Mob, hooks: TickHooks, popupColor: string | undefined) {
-  // Pas de hit-stop sur les kills à distance — sinon le jeu freeze constamment.
   world.popups.push({
     pos: { x: mob.pos.x, y: mob.pos.y },
     text: "+1",
@@ -257,5 +256,5 @@ function onMobKilledByArrow(world: World, mob: Mob, hooks: TickHooks, popupColor
     ageMs: 0,
     color: popupColor ?? "#ffe18a",
   });
-  hooks.onKill();
+  hooks.onKill(mob.mithrilDrop);
 }

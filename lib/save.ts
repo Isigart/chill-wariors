@@ -2,9 +2,26 @@ import { useGame } from "./store";
 import { createProgression, type GameProgression } from "@/game/progression";
 import { BRANCHES_OF, WEAPONS, type WeaponKind } from "@/lib/balance";
 
-const KEY = "chill-warriors:v0.5";
-const LEGACY_KEYS = ["chill-warriors:v0.2", "chill-warriors:v0.3", "chill-warriors:v0.4"];
-const VERSION = 4;
+const KEY = "chill-warriors:v0.7";
+const LEGACY_KEYS = [
+  "chill-warriors:v0.2",
+  "chill-warriors:v0.3",
+  "chill-warriors:v0.4",
+  "chill-warriors:v0.5",
+];
+const VERSION = 5;
+
+interface SaveV5 {
+  v: 5;
+  kills: number;
+  progression: GameProgression;
+  /** Mithril banké (instance). */
+  mithril: number;
+  /** Clefs par arme (v0.7 : encore vides — drop arrive en v0.8). */
+  keys?: Record<string, number>;
+  /** Niveaux de trempage par arme/branche (v0.7 : vides). */
+  trempage?: Record<string, Record<string, number>>;
+}
 
 interface SaveV4 {
   v: 4;
@@ -37,15 +54,44 @@ export function loadSave(): { progression: GameProgression } | null {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as SaveV4;
+      const parsed = JSON.parse(raw) as SaveV5;
       if (parsed.v === VERSION) {
         const prog = sanitize(parsed.progression);
-        useGame.getState().hydrate({ kills: parsed.kills ?? 0, progression: prog });
+        useGame.getState().hydrate({
+          kills: parsed.kills ?? 0,
+          progression: prog,
+          mithril: typeof parsed.mithril === "number" ? Math.max(0, parsed.mithril) : 0,
+        });
         return { progression: prog };
       }
     }
 
-    // Migration v0.4 → v0.5 : on garde l'épée, on bascule sur la nouvelle shape.
+    // Migration v0.5 → v0.7 (schema v4 → v5).
+    const v05Raw = window.localStorage.getItem("chill-warriors:v0.5");
+    if (v05Raw) {
+      try {
+        const parsed = JSON.parse(v05Raw) as SaveV4;
+        if (parsed.v === 4) {
+          const prog = sanitize(parsed.progression);
+          useGame.getState().hydrate({
+            kills: parsed.kills ?? 0,
+            progression: prog,
+            mithril: 0,
+          });
+          try {
+            window.localStorage.setItem(KEY, JSON.stringify({ v: VERSION, kills: parsed.kills ?? 0, progression: prog, mithril: 0 }));
+            window.localStorage.removeItem("chill-warriors:v0.5");
+          } catch {
+            /* noop */
+          }
+          return { progression: prog };
+        }
+      } catch {
+        /* noop */
+      }
+    }
+
+    // Migration v0.4 → v0.7 : on garde l'épée, on bascule sur la nouvelle shape.
     const legacyRaw = window.localStorage.getItem("chill-warriors:v0.4");
     if (legacyRaw) {
       try {
@@ -89,7 +135,12 @@ export function loadSave(): { progression: GameProgression } | null {
 export function persistFromStore() {
   if (typeof window === "undefined") return;
   const s = useGame.getState();
-  const data: SaveV4 = { v: VERSION, kills: s.kills, progression: s.progression };
+  const data: SaveV5 = {
+    v: VERSION,
+    kills: s.kills,
+    progression: s.progression,
+    mithril: s.mithril,
+  };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(data));
   } catch {

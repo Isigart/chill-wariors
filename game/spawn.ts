@@ -33,5 +33,9 @@ function spawnOneMob(world: World) {
     burnUntilMs: -Infinity,
     burnDps: 0,
     burnPropagationRadius: 0,
+    isGolem: false,
+    isMajor: false,
+    mithrilDrop: 0,
+    contactDamage: 0,
   });
 }

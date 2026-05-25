@@ -4,6 +4,7 @@ import { tickSpawn } from "./spawn";
 import { applyKnockback, rollCrit, triggerExplosion } from "./effects";
 import { tickBow } from "./bow";
 import { tickFireWand } from "./fireWand";
+import { tickInstanceWaves, tickPlayerContact } from "./instance";
 
 const TRAIL_LIFE_MS = 180;
 const TRAIL_SAMPLE_MS = 16;
@@ -25,7 +26,12 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   for (const sw of world.shockwaves) sw.ageMs += dtMs;
   world.shockwaves = world.shockwaves.filter((s) => s.ageMs < s.lifeMs);
 
-  tickSpawn(world, dtMs);
+  // Spawn différencié selon le mode.
+  if (world.ctx.mode === "instance") {
+    tickInstanceWaves(world, dtMs, hooks);
+  } else {
+    tickSpawn(world, dtMs);
+  }
 
   const px = world.player.pos.x;
   const py = world.player.pos.y;
@@ -38,6 +44,12 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
     const dist = Math.hypot(dx, dy) || 1;
     mob.pos.x += (dx / dist) * mob.speed * dtSec;
     mob.pos.y += (dy / dist) * mob.speed * dtSec;
+  }
+
+  // Contact damage (instance uniquement).
+  if (world.ctx.mode === "instance") {
+    const died = tickPlayerContact(world, dtMs, hooks);
+    if (died) return; // Skip combat tick si mort — la modale altar prend le relais.
   }
 
   /* ----- ÉPÉE (équipée seulement) ----- */
@@ -262,9 +274,9 @@ function onMobKilledBySword(world: World, mob: Mob, crit: boolean, sEff: typeof 
       const chainedSet = new Set(chained.map((m) => m.id));
       world.mobs = world.mobs.filter((m) => !chainedSet.has(m.id));
       for (const id of chainedSet) world.sword.lastHits.delete(id);
-      for (let k = 0; k < chained.length; k++) hooks.onKill();
+      for (const cm of chained) hooks.onKill(cm.mithrilDrop);
     }
   }
 
-  hooks.onKill();
+  hooks.onKill(mob.mithrilDrop);
 }

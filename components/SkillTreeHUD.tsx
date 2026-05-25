@@ -26,6 +26,7 @@ export default function SkillTreeHUD() {
   const setTraining = useGame((s) => s.setTraining);
   const lastUnlocked = useGame((s) => s.lastUnlocked);
   const consumeLastUnlocked = useGame((s) => s.consumeLastUnlocked);
+  const mode = useGame((s) => s.mode);
 
   const [flashing, setFlashing] = useState<{
     weapon: WeaponKind;
@@ -49,6 +50,9 @@ export default function SkillTreeHUD() {
     const id = setTimeout(() => setFlashing(null), 1600);
     return () => clearTimeout(id);
   }, [lastUnlocked, consumeLastUnlocked]);
+
+  // En instance / altar : on cache l'arbre (l'UI est différente).
+  if (mode !== "idle") return null;
 
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 font-mono">
