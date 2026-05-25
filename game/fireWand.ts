@@ -244,10 +244,12 @@ function detonate(
   burnPropagationRadius: number | undefined,
   hooks: TickHooks,
 ) {
-  // FX.
+  // FX. Pas de flash global sur chaque explosion (trop agressif en spam) ;
+  // la shockwave + les particules suffisent. Le screen shake reste mais
+  // proportionnel au rayon de l'explosion (T1 = ~1 px, T5 météore = ~6 px).
   world.shockwaves.push({ pos: { ...pos }, radius: 0, ageMs: 0, lifeMs: 320 });
-  world.flashMs = Math.max(world.flashMs, 60);
-  world.screenShake = Math.max(world.screenShake, 4);
+  const shake = Math.min(6, 0.04 * radius);
+  world.screenShake = Math.max(world.screenShake, shake);
   // Particules.
   for (let i = 0; i < 14; i++) {
     const a = (i / 14) * TWO_PI;
