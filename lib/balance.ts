@@ -363,27 +363,48 @@ export const MAX_TIER = 5;
 /** Couleur d'accent par arme + branche (HUD / render). */
 export const BRANCH_TINT: Record<WeaponKind, Record<string, string>> = {
   sword: {
-    speed: "#7fd0ff",
-    range: "#9be4a3",
-    damage: "#ff8a3d",
+    speed: "#d8d4c0",   // argent ivoire
+    range: "#7a9a5a",   // vert mousse
+    damage: "#c8401a",  // rouge brasier
   },
   bow: {
-    cadence: "#ffe18a",
-    pierce: "#ffffff",
-    multi: "#c8d4f0",
+    cadence: "#e8c878", // or chaud
+    pierce: "#f0e2c0",  // ivoire empennage
+    multi: "#7a5a3a",   // bois brun
   },
   fireWand: {
-    inferno: "#ff5a3d",
-    brasier: "#ff9a3d",
-    lancers: "#ffd24d",
+    inferno: "#c8401a", // rouge brasier
+    brasier: "#a83020", // rouge sang séché
+    lancers: "#f0a838", // jaune chaud
   },
 };
 
 export const WEAPON_TINT: Record<WeaponKind, string> = {
-  sword: "#dde3f0",
-  bow: "#ffe18a",
-  fireWand: "#ff9a3d",
+  sword: "#d8d4c0",    // argent ivoire
+  bow: "#e8c878",      // or chaud
+  fireWand: "#c8401a", // rouge brasier
 };
+
+/** Palette médiéval fantasy centrale (Pile C5). À utiliser partout dans le rendu. */
+export const PALETTE = {
+  bg: "#1a1410",          // charbon chaud
+  bgInstance: "#1f1310",  // charbon plus rouge pour la mine
+  parchment: "#f8ecc8",   // crème / parchemin
+  ivory: "#f0e2c0",       // ivoire
+  goldBright: "#f0d490",  // or clair
+  gold: "#e8c878",        // or chaud
+  goldDim: "#b8924a",     // or terni
+  bronze: "#8a7142",      // bronze patiné
+  silver: "#d8d4c0",      // argent (épée)
+  brick: "#a83020",       // rouge brique
+  blood: "#7a2020",       // rouge sang séché
+  ember: "#c8401a",       // rouge brasier
+  amber: "#f0a838",       // jaune chaud
+  oak: "#7a5a3a",         // bois brun
+  moss: "#7a9a5a",        // vert mousse
+  forest: "#4a6a3a",      // vert forêt
+  midnight: "#1f2a3a",    // bleu minuit
+} as const;
 
 export const WEAPON_LABEL: Record<WeaponKind, string> = {
   sword: "ÉPÉE",

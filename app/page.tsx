@@ -8,7 +8,7 @@ import DevPanel from "@/components/DevPanel";
 
 export default function Page() {
   return (
-    <main className="fixed inset-0 overflow-hidden bg-[#0a0a0f]">
+    <main className="fixed inset-0 overflow-hidden bg-[#1a1410]">
       <GameCanvas />
       <HUD />
       <SkillTreeHUD />

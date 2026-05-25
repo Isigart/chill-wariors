@@ -17,15 +17,16 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
 
   // 1. Fond — différencié selon le mode (idle vs instance).
   const isInstance = world.ctx.mode === "instance";
-  const bgColor = isInstance ? "#170d10" : "#0a0a0f";
+  // Charbon chaud (médiéval) au lieu du charbon froid (tech).
+  const bgColor = isInstance ? "#1f1310" : "#1a1410";
   const a = BALANCE.juice.clearAlpha;
   if (a >= 1) {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
   } else {
     ctx.fillStyle = isInstance
-      ? `rgba(23, 13, 16, ${a})`
-      : `rgba(10, 10, 15, ${a})`;
+      ? `rgba(31, 19, 16, ${a})`
+      : `rgba(26, 20, 16, ${a})`;
     ctx.fillRect(0, 0, w, h);
   }
 
@@ -92,7 +93,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     const k = sw.ageMs / sw.lifeMs;
     const r = 30 + k * 200;
     ctx.globalAlpha = (1 - k) * 0.6;
-    ctx.strokeStyle = "#9ce5ff";
+    ctx.strokeStyle = "#e8c878";
     ctx.lineWidth = 3 * (1 - k);
     ctx.beginPath();
     ctx.arc(sw.pos.x, sw.pos.y, r, 0, TWO_PI);
@@ -107,9 +108,9 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     const dense = eff.visual.ring === "dense";
     ctx.save();
     ctx.lineWidth = dense ? eff.width * 1.4 : eff.width * 0.8;
-    ctx.strokeStyle = dense ? "rgba(127, 208, 255, 0.6)" : "rgba(127, 208, 255, 0.35)";
+    ctx.strokeStyle = dense ? "rgba(216, 212, 192, 0.65)" : "rgba(216, 212, 192, 0.4)";
     if (dense) {
-      ctx.shadowColor = "#7fd0ff";
+      ctx.shadowColor = "#d8d4c0";
       ctx.shadowBlur = 18;
     }
     ctx.beginPath();
@@ -127,7 +128,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
       const ox = px + Math.cos(oa) * orbitR;
       const oy = py + Math.sin(oa) * orbitR;
       ctx.globalAlpha = 0.7;
-      ctx.fillStyle = "#cef2ff";
+      ctx.fillStyle = "#f0e2c0";
       ctx.beginPath();
       ctx.arc(ox, oy, 2.5, 0, TWO_PI);
       ctx.fill();
@@ -161,7 +162,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
   const trailIntensity = eff.visual.trail ?? 0;
   if (swordEquipped && trailIntensity > 0 && world.trail.length > 1) {
     ctx.lineCap = "round";
-    const trailColor = eff.visual.trailColor ?? "#7fd0ff";
+    const trailColor = eff.visual.trailColor ?? "#d8d4c0";
     for (const t of world.trail) {
       const k = 1 - t.ageMs / 180;
       if (k <= 0) continue;
@@ -216,11 +217,15 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     }
   }
 
-  // 8. Perso.
-  ctx.fillStyle = "#ffffff";
+  // 8. Perso. Ivoire chaud (médiéval) au lieu de blanc pur (tech).
+  ctx.fillStyle = "#f0e2c0";
   ctx.beginPath();
   ctx.arc(px, py, BALANCE.player.radius, 0, TWO_PI);
   ctx.fill();
+  // Liseré bronze pour donner du poids au perso.
+  ctx.strokeStyle = "rgba(184, 146, 74, 0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 
   // 9. Lame principale (épée équipée seulement).
   if (swordEquipped) {
@@ -302,7 +307,7 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
       const by = mob.pos.y - mob.radius - 8;
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(bx, by, bw, bh);
-      ctx.fillStyle = mob.isMajor ? "#ffd24d" : "#ff5a5a";
+      ctx.fillStyle = mob.isMajor ? "#e8c878" : "#a83020";
       ctx.fillRect(bx, by, bw * k, bh);
     }
   }
@@ -478,15 +483,15 @@ function drawBlade(
     : isFire
     ? "#ffe6a8"
     : tint > 0
-    ? lerpColor("#e0e6ff", "#ff8080", tint)
-    : "#e0e6ff";
+    ? lerpColor("#d8d4c0", "#c8401a", tint)
+    : "#d8d4c0";
   const outerColor = isGolden
     ? "#ffd76b"
     : isFire
     ? "#ff8a3d"
     : tint > 0
-    ? lerpColor("#cdd2e8", "#c54141", tint)
-    : "#cdd2e8";
+    ? lerpColor("#b8b4a0", "#a83020", tint)
+    : "#b8b4a0";
 
   if (isFire) {
     ctx.save();
