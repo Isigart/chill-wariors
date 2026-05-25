@@ -2,6 +2,7 @@ import GameCanvas from "@/components/GameCanvas";
 import HUD from "@/components/HUD";
 import SkillTreeHUD from "@/components/SkillTreeHUD";
 import AltarUI from "@/components/AltarUI";
+import DevPanel from "@/components/DevPanel";
 
 export default function Page() {
   return (
@@ -10,6 +11,7 @@ export default function Page() {
       <HUD />
       <SkillTreeHUD />
       <AltarUI />
+      <DevPanel />
     </main>
   );
 }

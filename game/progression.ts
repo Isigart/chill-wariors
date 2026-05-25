@@ -2,6 +2,8 @@ import {
   BALANCE,
   BRANCHES_OF,
   MAX_TIER,
+  TREMPAGE,
+  TREMPAGE_STAT,
   type BowStatOverride,
   type BowTierEffects,
   type BowTierVisual,
@@ -20,13 +22,15 @@ export interface WeaponProgression {
   tier: Record<string, number>;
 }
 
-/** Progression GLOBALE du jeu : armes + sélection de training + arme équipée. */
+/** Progression GLOBALE du jeu : armes + sélection de training + arme équipée + trempage. */
 export interface GameProgression {
   /** Arme actuellement équipée (1 seule active à la fois en v0.5). */
   equipped: WeaponKind;
   /** Branche entraînée pour l'arme équipée. */
   trainingBranch: string;
   weapons: Record<WeaponKind, WeaponProgression>;
+  /** Niveau de trempage par arme/branche (post-T5). 0 = jamais trempé. */
+  trempage: Record<WeaponKind, Record<string, number>>;
 }
 
 /* ---------- Stats effectives ---------- */
@@ -78,6 +82,14 @@ function emptyWeaponProg(kind: WeaponKind): WeaponProgression {
   return { xp, tier };
 }
 
+function emptyTrempage(): Record<WeaponKind, Record<string, number>> {
+  const t: Record<WeaponKind, Record<string, number>> = { sword: {}, bow: {}, fireWand: {} };
+  for (const w of ["sword", "bow", "fireWand"] as WeaponKind[]) {
+    for (const b of BRANCHES_OF[w]) t[w][b as string] = 0;
+  }
+  return t;
+}
+
 export function createProgression(): GameProgression {
   return {
     equipped: "sword",
@@ -87,7 +99,27 @@ export function createProgression(): GameProgression {
       bow: emptyWeaponProg("bow"),
       fireWand: emptyWeaponProg("fireWand"),
     },
+    trempage: emptyTrempage(),
   };
+}
+
+/** Renvoie le niveau de trempage de la branche (0 si jamais trempé). */
+export function trempageLevelOf(prog: GameProgression, weapon: WeaponKind, branch: string): number {
+  return prog.trempage[weapon]?.[branch] ?? 0;
+}
+
+/** Une arme est "maxée" si toutes ses branches sont au tier final (MAX_TIER). */
+export function isWeaponMaxed(prog: GameProgression, weapon: WeaponKind): boolean {
+  const branches = BRANCHES_OF[weapon] as readonly string[];
+  for (const b of branches) {
+    if ((prog.weapons[weapon].tier[b] ?? 0) < MAX_TIER) return false;
+  }
+  return true;
+}
+
+/** Liste des armes maxées (toutes branches T5). Utile pour l'UI altar. */
+export function maxedWeapons(prog: GameProgression): WeaponKind[] {
+  return (["sword", "bow", "fireWand"] as WeaponKind[]).filter((w) => isWeaponMaxed(prog, w));
 }
 
 /* ---------- Mutations ---------- */
@@ -172,7 +204,37 @@ export function getEffectiveSwordStats(prog: GameProgression): EffectiveSwordSta
     if (def.visual) Object.assign(visual, def.visual);
   }
 
-  return { length, width, rotationSpeed, damage, hitCooldownMs, effects, visual };
+  // Apply trempage multipliers.
+  const trempageStats: Record<string, number> = { length, width, rotationSpeed, damage, hitCooldownMs };
+  applyTrempage(prog, "sword", trempageStats);
+  return {
+    length: trempageStats.length,
+    width: trempageStats.width,
+    rotationSpeed: trempageStats.rotationSpeed,
+    damage: trempageStats.damage,
+    hitCooldownMs: trempageStats.hitCooldownMs,
+    effects,
+    visual,
+  };
+}
+
+/** Applique les multiplicateurs de trempage à un dict de stats. Mute en place. */
+function applyTrempage(
+  prog: GameProgression,
+  weapon: WeaponKind,
+  stats: Record<string, number>,
+) {
+  const branches = BRANCHES_OF[weapon] as readonly string[];
+  for (const branch of branches) {
+    const level = prog.trempage[weapon]?.[branch] ?? 0;
+    if (level <= 0) continue;
+    const mapping = TREMPAGE_STAT[weapon]?.[branch];
+    if (!mapping) continue;
+    const mult = TREMPAGE.multiplier(level);
+    const key = mapping.stat;
+    if (typeof stats[key] !== "number") continue;
+    stats[key] = mapping.inverse ? stats[key] / mult : stats[key] * mult;
+  }
 }
 
 export function getEffectiveBowStats(prog: GameProgression): EffectiveBowStats {
@@ -203,7 +265,19 @@ export function getEffectiveBowStats(prog: GameProgression): EffectiveBowStats {
     if (def.visual) Object.assign(visual, def.visual);
   }
 
-  return { range, arrowSpeed, fireRateMs, damage, arrowsPerShot, spreadDegrees, pierceCount, effects, visual };
+  const trempageStats: Record<string, number> = { range, arrowSpeed, fireRateMs, damage, arrowsPerShot, spreadDegrees, pierceCount };
+  applyTrempage(prog, "bow", trempageStats);
+  return {
+    range: trempageStats.range,
+    arrowSpeed: trempageStats.arrowSpeed,
+    fireRateMs: Math.max(40, trempageStats.fireRateMs),
+    damage: trempageStats.damage,
+    arrowsPerShot: trempageStats.arrowsPerShot,
+    spreadDegrees: trempageStats.spreadDegrees,
+    pierceCount: trempageStats.pierceCount,
+    effects,
+    visual,
+  };
 }
 
 export function getEffectiveFireWandStats(prog: GameProgression): EffectiveFireWandStats {
@@ -236,7 +310,20 @@ export function getEffectiveFireWandStats(prog: GameProgression): EffectiveFireW
     if (def.visual) Object.assign(visual, def.visual);
   }
 
-  return { range, projectileSpeed, fireRateMs, damage, explosionRadius, burnDurationMs, burnDps, projectilesPerShot, effects, visual };
+  const trempageStats: Record<string, number> = { range, projectileSpeed, fireRateMs, damage, explosionRadius, burnDurationMs, burnDps, projectilesPerShot };
+  applyTrempage(prog, "fireWand", trempageStats);
+  return {
+    range: trempageStats.range,
+    projectileSpeed: trempageStats.projectileSpeed,
+    fireRateMs: Math.max(40, trempageStats.fireRateMs),
+    damage: trempageStats.damage,
+    explosionRadius: trempageStats.explosionRadius,
+    burnDurationMs: trempageStats.burnDurationMs,
+    burnDps: trempageStats.burnDps,
+    projectilesPerShot: trempageStats.projectilesPerShot,
+    effects,
+    visual,
+  };
 }
 
 export { MAX_TIER } from "@/lib/balance";

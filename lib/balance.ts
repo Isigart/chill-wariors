@@ -393,6 +393,51 @@ export const BRANCH_LABEL: Record<WeaponKind, Record<string, string>> = {
   },
 };
 
+/* ------------------------------ Trempage ------------------------------ */
+
+/**
+ * Mécanique de trempage post-T5. Chaque branche maxée a un niveau de
+ * trempage (entier ≥ 0) qui démarre à 0 et grandit à chaque succès au
+ * rituel de l'autel.
+ *
+ *   probaTrempage(niveauVise, mithril) → chance de succès dans [0.05, 0.99]
+ *   trempageMultiplier(niveau) → 1 + 0.05 × niveau × decay(niveau)
+ */
+export const TREMPAGE = {
+  probaBase: (niveauVise: number) => Math.max(0.05, 1 - niveauVise * 0.01),
+  bonusMax: 0.5,
+  efficacite: 50,
+  bonus: (mithril: number) => 0.5 * (1 - Math.exp(-Math.max(0, mithril) / 50)),
+  probaCap: 0.99,
+  procaFinale: (niveauVise: number, mithril: number) =>
+    Math.min(0.99, Math.max(0.05, 1 - niveauVise * 0.01) + 0.5 * (1 - Math.exp(-Math.max(0, mithril) / 50))),
+  /** Multiplicateur appliqué à la stat principale d'une branche selon son niveau de trempage. */
+  multiplier: (niveau: number) => {
+    if (niveau <= 0) return 1;
+    const decay = 1 / (1 + niveau / 100);
+    return 1 + 0.05 * niveau * decay;
+  },
+} as const;
+
+/** Quelle stat est amplifiée par le trempage d'une branche. "inverse" = stat où plus bas = mieux (fireRateMs). */
+export const TREMPAGE_STAT: Record<WeaponKind, Record<string, { stat: string; inverse?: boolean }>> = {
+  sword: {
+    speed: { stat: "rotationSpeed" },
+    range: { stat: "length" },
+    damage: { stat: "damage" },
+  },
+  bow: {
+    cadence: { stat: "fireRateMs", inverse: true },
+    pierce: { stat: "damage" },
+    multi: { stat: "damage" },
+  },
+  fireWand: {
+    inferno: { stat: "damage" },
+    brasier: { stat: "burnDps" },
+    lancers: { stat: "fireRateMs", inverse: true },
+  },
+};
+
 /** Description d'une vague d'instance. */
 export interface InstanceWaveSpec {
   kind: "minor" | "major";

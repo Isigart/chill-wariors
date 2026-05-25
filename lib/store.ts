@@ -2,12 +2,20 @@ import { create } from "zustand";
 import {
   awardXp as awardXpPure,
   createProgression,
+  isWeaponMaxed,
   setTraining as setTrainingPure,
   type GameProgression,
 } from "@/game/progression";
-import type { WeaponKind } from "@/lib/balance";
+import { BRANCHES_OF, TREMPAGE, type WeaponKind } from "@/lib/balance";
 
 export type GameMode = "idle" | "instance" | "altar";
+
+export interface TrempageResult {
+  success: boolean;
+  newLevel: number;
+  proba: number;
+  mithrilSpent: number;
+}
 
 type GameStore = {
   kills: number;
@@ -27,8 +35,8 @@ type GameStore = {
   instanceWave: number;
   /** Stock de clefs par arme (vide en v0.7 — pas encore de drop). */
   keys: Record<WeaponKind, number>;
-  /** Niveau de trempage par arme/branche (vide en v0.7). */
-  trempage: Record<WeaponKind, Record<string, number>>;
+  /** Dernier résultat de trempage (transitoire, consommé par l'UI pour l'anim). */
+  lastTrempage: TrempageResult | null;
 
   addKill: () => void;
   setTraining: (weapon: WeaponKind, branch: string) => void;
@@ -41,19 +49,24 @@ type GameStore = {
   damagePlayer: (amount: number) => void;
   addMithril: (amount: number) => void;
   setInstanceWave: (n: number) => void;
-  endRun: () => void;        // mort ou bouton "Tenter le rituel" → mode altar
-  returnToIdle: () => void;  // depuis altar → bank mithril + reset → idle
+  endRun: () => void;
+  returnToIdle: () => void;
+
+  // --- Trempage ---
+  attemptTrempage: (weapon: WeaponKind, branch: string, mithrilCost: number) => TrempageResult | null;
+  consumeLastTrempage: () => void;
+
+  // --- Debug ---
+  devMaxAllWeapons: () => void;
+  devGiveMithril: (amount: number) => void;
 
   hydrate: (s: Partial<Pick<GameStore,
-    "kills" | "progression" | "mithril" | "keys" | "trempage" | "mode"
+    "kills" | "progression" | "mithril" | "keys" | "mode"
   >>) => void;
 };
 
 function emptyKeys(): Record<WeaponKind, number> {
   return { sword: 0, bow: 0, fireWand: 0 };
-}
-function emptyTrempage(): Record<WeaponKind, Record<string, number>> {
-  return { sword: {}, bow: {}, fireWand: {} };
 }
 
 export const useGame = create<GameStore>((set, get) => ({
@@ -68,7 +81,7 @@ export const useGame = create<GameStore>((set, get) => ({
   mithrilInRun: 0,
   instanceWave: 1,
   keys: emptyKeys(),
-  trempage: emptyTrempage(),
+  lastTrempage: null,
 
   addKill: () => set((s) => ({ kills: s.kills + 1 })),
 
@@ -124,6 +137,61 @@ export const useGame = create<GameStore>((set, get) => ({
       instanceWave: 1,
     })),
 
+  attemptTrempage: (weapon, branch, mithrilCost) => {
+    const s = get();
+    const prog = s.progression;
+    // Éligibilité.
+    if (!isWeaponMaxed(prog, weapon)) return null;
+    if (mithrilCost < 0) return null;
+    const total = s.mithril + s.mithrilInRun;
+    if (mithrilCost > total) return null;
+
+    const currentLevel = prog.trempage[weapon]?.[branch] ?? 0;
+    const niveauVise = currentLevel + 1;
+    const proba = TREMPAGE.procaFinale(niveauVise, mithrilCost);
+    const roll = Math.random();
+    const success = roll < proba;
+
+    // Mithril consommé : on déduit en priorité du banké, puis du run.
+    const next = clone(prog);
+    const fromBank = Math.min(s.mithril, mithrilCost);
+    const fromRun = mithrilCost - fromBank;
+    if (success) {
+      next.trempage[weapon][branch] = niveauVise;
+    }
+    const result: TrempageResult = {
+      success,
+      newLevel: success ? niveauVise : currentLevel,
+      proba,
+      mithrilSpent: mithrilCost,
+    };
+    set({
+      progression: next,
+      mithril: s.mithril - fromBank,
+      mithrilInRun: s.mithrilInRun - fromRun,
+      lastTrempage: result,
+    });
+    return result;
+  },
+
+  consumeLastTrempage: () => set({ lastTrempage: null }),
+
+  devMaxAllWeapons: () => {
+    const prev = get().progression;
+    const next = clone(prev);
+    for (const w of ["sword", "bow", "fireWand"] as WeaponKind[]) {
+      const branches = BRANCHES_OF[w] as readonly string[];
+      const maxThresholds = 6000; // beyond the last threshold guarantee
+      for (const b of branches) {
+        next.weapons[w].tier[b] = 5;
+        next.weapons[w].xp[b] = maxThresholds;
+      }
+    }
+    set({ progression: next });
+  },
+
+  devGiveMithril: (amount) => set((s) => ({ mithril: s.mithril + amount })),
+
   hydrate: (s) => set((prev) => ({ ...prev, ...s })),
 }));
 
@@ -135,6 +203,11 @@ function clone(p: GameProgression): GameProgression {
       sword: { xp: { ...p.weapons.sword.xp }, tier: { ...p.weapons.sword.tier } },
       bow: { xp: { ...p.weapons.bow.xp }, tier: { ...p.weapons.bow.tier } },
       fireWand: { xp: { ...p.weapons.fireWand.xp }, tier: { ...p.weapons.fireWand.tier } },
+    },
+    trempage: {
+      sword: { ...(p.trempage?.sword ?? {}) },
+      bow: { ...(p.trempage?.bow ?? {}) },
+      fireWand: { ...(p.trempage?.fireWand ?? {}) },
     },
   };
 }

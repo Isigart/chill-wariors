@@ -145,10 +145,17 @@ export default function GameCanvas() {
       const swT = s.progression.weapons.sword.tier;
       const bwT = s.progression.weapons.bow.tier;
       const fwT = s.progression.weapons.fireWand.tier;
+      // Inclus trempage : tempering modifie les stats effectives sans toucher aux tiers.
+      const tr = s.progression.trempage;
+      const trKey =
+        `${tr.sword.speed ?? 0}.${tr.sword.range ?? 0}.${tr.sword.damage ?? 0}` +
+        `:${tr.bow.cadence ?? 0}.${tr.bow.pierce ?? 0}.${tr.bow.multi ?? 0}` +
+        `:${tr.fireWand.inferno ?? 0}.${tr.fireWand.brasier ?? 0}.${tr.fireWand.lancers ?? 0}`;
       const key =
         `${swT.speed ?? 0}-${swT.range ?? 0}-${swT.damage ?? 0}` +
         `|${bwT.cadence ?? 0}-${bwT.pierce ?? 0}-${bwT.multi ?? 0}` +
-        `|${fwT.inferno ?? 0}-${fwT.brasier ?? 0}-${fwT.lancers ?? 0}`;
+        `|${fwT.inferno ?? 0}-${fwT.brasier ?? 0}-${fwT.lancers ?? 0}` +
+        `~${trKey}`;
       if (key !== lastTiersKeyRef.current) {
         lastTiersKeyRef.current = key;
         w.sword.effective = getEffectiveSwordStats(s.progression);

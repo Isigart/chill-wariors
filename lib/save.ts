@@ -2,25 +2,30 @@ import { useGame } from "./store";
 import { createProgression, type GameProgression } from "@/game/progression";
 import { BRANCHES_OF, WEAPONS, type WeaponKind } from "@/lib/balance";
 
-const KEY = "chill-warriors:v0.7";
+const KEY = "chill-warriors:v0.8";
 const LEGACY_KEYS = [
   "chill-warriors:v0.2",
   "chill-warriors:v0.3",
   "chill-warriors:v0.4",
   "chill-warriors:v0.5",
+  "chill-warriors:v0.7",
 ];
-const VERSION = 5;
+const VERSION = 6;
+
+interface SaveV6 {
+  v: 6;
+  kills: number;
+  progression: GameProgression; // trempage est maintenant dans progression
+  mithril: number;
+  keys?: Record<string, number>;
+}
 
 interface SaveV5 {
   v: 5;
   kills: number;
-  progression: GameProgression;
-  /** Mithril banké (instance). */
+  progression: GameProgression; // shape v0.7 sans trempage
   mithril: number;
-  /** Clefs par arme (v0.7 : encore vides — drop arrive en v0.8). */
   keys?: Record<string, number>;
-  /** Niveaux de trempage par arme/branche (v0.7 : vides). */
-  trempage?: Record<string, Record<string, number>>;
 }
 
 interface SaveV4 {
@@ -54,7 +59,7 @@ export function loadSave(): { progression: GameProgression } | null {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as SaveV5;
+      const parsed = JSON.parse(raw) as SaveV6;
       if (parsed.v === VERSION) {
         const prog = sanitize(parsed.progression);
         useGame.getState().hydrate({
@@ -63,6 +68,33 @@ export function loadSave(): { progression: GameProgression } | null {
           mithril: typeof parsed.mithril === "number" ? Math.max(0, parsed.mithril) : 0,
         });
         return { progression: prog };
+      }
+    }
+
+    // Migration v0.7 (schema v5) → v0.8 (schema v6) : ajoute trempage vide.
+    const v07Raw = window.localStorage.getItem("chill-warriors:v0.7");
+    if (v07Raw) {
+      try {
+        const parsed = JSON.parse(v07Raw) as SaveV5;
+        if (parsed.v === 5) {
+          const prog = sanitize(parsed.progression);
+          useGame.getState().hydrate({
+            kills: parsed.kills ?? 0,
+            progression: prog,
+            mithril: typeof parsed.mithril === "number" ? Math.max(0, parsed.mithril) : 0,
+          });
+          try {
+            window.localStorage.setItem(KEY, JSON.stringify({
+              v: VERSION, kills: parsed.kills ?? 0, progression: prog, mithril: parsed.mithril ?? 0,
+            }));
+            window.localStorage.removeItem("chill-warriors:v0.7");
+          } catch {
+            /* noop */
+          }
+          return { progression: prog };
+        }
+      } catch {
+        /* noop */
       }
     }
 
@@ -135,7 +167,7 @@ export function loadSave(): { progression: GameProgression } | null {
 export function persistFromStore() {
   if (typeof window === "undefined") return;
   const s = useGame.getState();
-  const data: SaveV5 = {
+  const data: SaveV6 = {
     v: VERSION,
     kills: s.kills,
     progression: s.progression,
@@ -181,7 +213,29 @@ function sanitize(input: unknown): GameProgression {
       bow: { xp: { ...def.weapons.bow.xp }, tier: { ...def.weapons.bow.tier } },
       fireWand: { xp: { ...def.weapons.fireWand.xp }, tier: { ...def.weapons.fireWand.tier } },
     },
+    trempage: {
+      sword: { ...def.trempage.sword },
+      bow: { ...def.trempage.bow },
+      fireWand: { ...def.trempage.fireWand },
+    },
   };
+
+  // Hydrate trempage si présent.
+  const rawTrempage = (i as { trempage?: unknown }).trempage;
+  if (rawTrempage && typeof rawTrempage === "object") {
+    for (const w of WEAPONS) {
+      const wSrc = (rawTrempage as Record<string, unknown>)[w];
+      if (!wSrc || typeof wSrc !== "object") continue;
+      const bSrc = wSrc as Record<string, unknown>;
+      for (const b of BRANCHES_OF[w]) {
+        const bk = b as string;
+        const lvl = bSrc[bk];
+        if (typeof lvl === "number" && lvl >= 0 && Number.isFinite(lvl)) {
+          result.trempage[w][bk] = Math.floor(lvl);
+        }
+      }
+    }
+  }
 
   for (const w of WEAPONS) {
     const src = i.weapons?.[w];
