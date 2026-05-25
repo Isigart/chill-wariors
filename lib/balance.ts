@@ -417,6 +417,10 @@ export const TREMPAGE = {
     const decay = 1 / (1 + niveau / 100);
     return 1 + 0.05 * niveau * decay;
   },
+  /** Sur un échec, on retombe de N niveaux (clamp à 0). */
+  failurePenalty: 10,
+  /** Plafond de tentatives par visite à l'autel. */
+  maxAttemptsPerVisit: 3,
 } as const;
 
 /** Quelle stat est amplifiée par le trempage d'une branche. "inverse" = stat où plus bas = mieux (fireRateMs). */

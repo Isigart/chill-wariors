@@ -35,6 +35,8 @@ type GameStore = {
   instanceWave: number;
   /** Stock de clefs par arme (vide en v0.7 — pas encore de drop). */
   keys: Record<WeaponKind, number>;
+  /** Nb de tentatives de trempage effectuées dans la visite courante de l'autel. */
+  trempageAttempts: number;
   /** Dernier résultat de trempage (transitoire, consommé par l'UI pour l'anim). */
   lastTrempage: TrempageResult | null;
 
@@ -81,6 +83,7 @@ export const useGame = create<GameStore>((set, get) => ({
   mithrilInRun: 0,
   instanceWave: 1,
   keys: emptyKeys(),
+  trempageAttempts: 0,
   lastTrempage: null,
 
   addKill: () => set((s) => ({ kills: s.kills + 1 })),
@@ -126,7 +129,7 @@ export const useGame = create<GameStore>((set, get) => ({
 
   setInstanceWave: (n) => set({ instanceWave: n }),
 
-  endRun: () => set({ mode: "altar" }),
+  endRun: () => set({ mode: "altar", trempageAttempts: 0 }),
 
   returnToIdle: () =>
     set((s) => ({
@@ -135,6 +138,7 @@ export const useGame = create<GameStore>((set, get) => ({
       mithrilInRun: 0,
       playerHp: s.playerHpMax,
       instanceWave: 1,
+      trempageAttempts: 0,
     })),
 
   attemptTrempage: (weapon, branch, mithrilCost) => {
@@ -143,8 +147,11 @@ export const useGame = create<GameStore>((set, get) => ({
     // Éligibilité.
     if (!isWeaponMaxed(prog, weapon)) return null;
     if (mithrilCost < 0) return null;
+    if (s.trempageAttempts >= TREMPAGE.maxAttemptsPerVisit) return null;
     const total = s.mithril + s.mithrilInRun;
     if (mithrilCost > total) return null;
+    // L'arme tentée doit être celle équipée (UI le force déjà mais on garde le guard).
+    if (prog.equipped !== weapon) return null;
 
     const currentLevel = prog.trempage[weapon]?.[branch] ?? 0;
     const niveauVise = currentLevel + 1;
@@ -156,12 +163,17 @@ export const useGame = create<GameStore>((set, get) => ({
     const next = clone(prog);
     const fromBank = Math.min(s.mithril, mithrilCost);
     const fromRun = mithrilCost - fromBank;
+    let newLevel: number;
     if (success) {
-      next.trempage[weapon][branch] = niveauVise;
+      newLevel = niveauVise;
+    } else {
+      newLevel = Math.max(0, currentLevel - TREMPAGE.failurePenalty);
     }
+    next.trempage[weapon][branch] = newLevel;
+
     const result: TrempageResult = {
       success,
-      newLevel: success ? niveauVise : currentLevel,
+      newLevel,
       proba,
       mithrilSpent: mithrilCost,
     };
@@ -170,6 +182,7 @@ export const useGame = create<GameStore>((set, get) => ({
       mithril: s.mithril - fromBank,
       mithrilInRun: s.mithrilInRun - fromRun,
       lastTrempage: result,
+      trempageAttempts: s.trempageAttempts + 1,
     });
     return result;
   },
