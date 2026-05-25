@@ -8,7 +8,7 @@
  * Doc humaine des paliers : `design/SWORD_TREE.md`, `design/WEAPON_TREES.md`.
  */
 
-export const WEAPONS = ["sword", "bow", "fireWand"] as const;
+export const WEAPONS = ["sword", "bow", "fireWand", "shield"] as const;
 export type WeaponKind = (typeof WEAPONS)[number];
 
 /* ------------------------------ Sword ------------------------------ */
@@ -155,6 +155,56 @@ export interface FireWandTier {
   visual?: FireWandTierVisual;
 }
 
+/* ------------------------------ Shield ------------------------------ */
+
+export interface ShieldStatOverride {
+  bashRadius?: number;
+  bashCooldownMs?: number;
+  bashDamage?: number;
+  auraRadius?: number;
+  auraDps?: number;
+  knockbackForce?: number;
+}
+
+export interface ShieldTierEffects {
+  /** T4 Forteresse : pression continue qui pousse les mobs hors du rayon. */
+  bashContinuous?: boolean;
+  /** T5 Forteresse : mur invisible, aucun mob ne peut entrer dans le rayon. */
+  citadel?: boolean;
+  /** T4 Aura : chance/tick de stun les mobs 200ms. */
+  auraStunChance?: number;
+  /** T5 Aura : éclair random toutes les N ms. */
+  staticStormIntervalMs?: number;
+  staticStormDamage?: number;
+  /** T3 Riposte : % de hits qui annulent la submersion ET renvoient des dégâts. */
+  reflectChance?: number;
+  /** T4 Riposte : % de chance d'instakill un mob qui touche le perso (cap HP × ratio). */
+  punitionChance?: number;
+  punitionHpCapRatio?: number;
+  /** T5 Riposte : à chaque kill par bash, N éclairs random tombent du ciel. */
+  sentenceBoltsOnKill?: number;
+  sentenceBoltDamage?: number;
+  popupColor?: string;
+}
+
+export interface ShieldTierVisual {
+  /** Couleur de la couronne de bouclier permanente. */
+  ringTint?: string;
+  /** Brillance/intensité (0 = base, plus = plus brillant). */
+  ringGlow?: number;
+  /** Aura filled (translucide à l'intérieur du auraRadius). */
+  auraFill?: boolean;
+  /** Éclairs cosmétiques permanents (storm visuel). */
+  stormSparks?: boolean;
+}
+
+export interface ShieldTier {
+  label: string;
+  stats: ShieldStatOverride;
+  effects?: ShieldTierEffects;
+  visual?: ShieldTierVisual;
+}
+
 /* ------------------------------ BALANCE ------------------------------ */
 
 export const BALANCE = {
@@ -278,6 +328,49 @@ export const BALANCE = {
       },
     },
 
+    shield: {
+      base: {
+        bashRadius: 50,
+        bashCooldownMs: 800,
+        bashDamage: 2,
+        auraRadius: 0,
+        auraDps: 0,
+        knockbackForce: 30,
+      },
+      branches: {
+        forteresse: {
+          thresholds: [15, 75, 350, 1500, 6000] as const,
+          tiers: [
+            { label: "Onde de poussée", stats: { bashRadius: 70, knockbackForce: 50 }, visual: { ringTint: "#d8d4c0", ringGlow: 0.2 } },
+            { label: "Onde marquée", stats: { bashRadius: 95, knockbackForce: 75 }, visual: { ringTint: "#d8d4c0", ringGlow: 0.35 } },
+            { label: "Anneau de force", stats: { bashRadius: 130, knockbackForce: 110 }, visual: { ringTint: "#d8d4c0", ringGlow: 0.55 } },
+            { label: "Bash continu", stats: { bashRadius: 170, knockbackForce: 160 }, effects: { bashContinuous: true }, visual: { ringTint: "#d8d4c0", ringGlow: 0.75 } },
+            { label: "Citadelle", stats: { bashRadius: 220, knockbackForce: 240 }, effects: { bashContinuous: true, citadel: true }, visual: { ringTint: "#f0e2c0", ringGlow: 1.0 } },
+          ] satisfies ShieldTier[],
+        },
+        aura: {
+          thresholds: [15, 75, 350, 1500, 6000] as const,
+          tiers: [
+            { label: "Aura passive", stats: { auraRadius: 80, auraDps: 1 }, visual: { auraFill: true, ringTint: "#7a9a5a", ringGlow: 0.15 } },
+            { label: "Halo crépitant", stats: { auraRadius: 110, auraDps: 3 }, visual: { auraFill: true, ringTint: "#7a9a5a", ringGlow: 0.3 } },
+            { label: "Champ électrique", stats: { auraRadius: 150, auraDps: 8 }, visual: { auraFill: true, ringTint: "#7a9a5a", ringGlow: 0.5 } },
+            { label: "Stun de zone", stats: { auraRadius: 200, auraDps: 20 }, effects: { auraStunChance: 0.05 }, visual: { auraFill: true, ringTint: "#7a9a5a", ringGlow: 0.75 } },
+            { label: "Tempête statique", stats: { auraRadius: 260, auraDps: 50 }, effects: { auraStunChance: 0.08, staticStormIntervalMs: 100, staticStormDamage: 8 }, visual: { auraFill: true, ringTint: "#9bd47a", ringGlow: 1.0, stormSparks: true } },
+          ] satisfies ShieldTier[],
+        },
+        riposte: {
+          thresholds: [15, 75, 350, 1500, 6000] as const,
+          tiers: [
+            { label: "Coup sec", stats: { bashDamage: 5 }, visual: { ringTint: "#c8401a", ringGlow: 0.2 } },
+            { label: "Cadence martiale", stats: { bashDamage: 12, bashCooldownMs: 700 }, visual: { ringTint: "#c8401a", ringGlow: 0.4 } },
+            { label: "Reflet d'épines", stats: { bashDamage: 30, bashCooldownMs: 600 }, effects: { reflectChance: 0.25 }, visual: { ringTint: "#c8401a", ringGlow: 0.6 } },
+            { label: "Punition divine", stats: { bashDamage: 70, bashCooldownMs: 500 }, effects: { reflectChance: 0.25, punitionChance: 0.3, punitionHpCapRatio: 5 }, visual: { ringTint: "#c8401a", ringGlow: 0.85 } },
+            { label: "Sentence divine", stats: { bashDamage: 200, bashCooldownMs: 400 }, effects: { reflectChance: 0.25, punitionChance: 0.3, punitionHpCapRatio: 5, sentenceBoltsOnKill: 3, sentenceBoltDamage: 80 }, visual: { ringTint: "#ff7a3d", ringGlow: 1.0 } },
+          ] satisfies ShieldTier[],
+        },
+      },
+    },
+
     fireWand: {
       base: {
         range: 320,
@@ -378,6 +471,7 @@ export const BRANCHES_OF: { [K in WeaponKind]: readonly BranchOf<K>[] } = {
   sword: ["speed", "range", "damage"] as const,
   bow: ["cadence", "pierce", "multi"] as const,
   fireWand: ["inferno", "brasier", "lancers"] as const,
+  shield: ["forteresse", "aura", "riposte"] as const,
 };
 
 export const MAX_TIER = 5;
@@ -399,12 +493,18 @@ export const BRANCH_TINT: Record<WeaponKind, Record<string, string>> = {
     brasier: "#a83020", // rouge sang séché
     lancers: "#f0a838", // jaune chaud
   },
+  shield: {
+    forteresse: "#d8d4c0", // argent ivoire (mur, citadelle)
+    aura: "#7a9a5a",       // vert mousse (DPS passif, magique)
+    riposte: "#c8401a",    // rouge brasier (contre-attaque)
+  },
 };
 
 export const WEAPON_TINT: Record<WeaponKind, string> = {
   sword: "#d8d4c0",    // argent ivoire
   bow: "#e8c878",      // or chaud
   fireWand: "#c8401a", // rouge brasier
+  shield: "#b8924a",   // or terni (gardien)
 };
 
 /** Palette médiéval fantasy centrale (Pile C5). À utiliser partout dans le rendu. */
@@ -432,6 +532,7 @@ export const WEAPON_LABEL: Record<WeaponKind, string> = {
   sword: "ÉPÉE",
   bow: "ARC",
   fireWand: "BAGUETTE",
+  shield: "BOUCLIER",
 };
 
 export const BRANCH_LABEL: Record<WeaponKind, Record<string, string>> = {
@@ -449,6 +550,11 @@ export const BRANCH_LABEL: Record<WeaponKind, Record<string, string>> = {
     inferno: "INFERNO",
     brasier: "BRASIER",
     lancers: "LANCERS",
+  },
+  shield: {
+    forteresse: "FORTERESSE",
+    aura: "AURA",
+    riposte: "RIPOSTE",
   },
 };
 
@@ -516,6 +622,11 @@ export const TREMPAGE_STAT: Record<WeaponKind, Record<string, { stat: string; in
     inferno: { stat: "damage" },
     brasier: { stat: "burnDps" },
     lancers: { stat: "fireRateMs", inverse: true },
+  },
+  shield: {
+    forteresse: { stat: "bashRadius" },
+    aura: { stat: "auraDps" },
+    riposte: { stat: "bashDamage" },
   },
 };
 
@@ -616,5 +727,10 @@ export const BRANCH_ICON: Record<WeaponKind, Record<string, string>> = {
     inferno: "💥",
     brasier: "🔥",
     lancers: "✨",
+  },
+  shield: {
+    forteresse: "🛡",
+    aura: "✨",
+    riposte: "⚔",
   },
 };

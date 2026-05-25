@@ -1,4 +1,4 @@
-import type { EffectiveBowStats, EffectiveFireWandStats, EffectiveSwordStats } from "./progression";
+import type { EffectiveBowStats, EffectiveFireWandStats, EffectiveShieldStats, EffectiveSwordStats } from "./progression";
 import type { WeaponKind } from "@/lib/balance";
 
 export type Vec2 = { x: number; y: number };
@@ -60,6 +60,14 @@ export interface Bow {
 export interface FireWand {
   lastShotAt: number;
   effective: EffectiveFireWandStats;
+}
+
+export interface Shield {
+  /** nowMs du dernier bash effectif. */
+  lastBashAt: number;
+  /** Accumulateur pour la tempête statique (T5 aura). */
+  stormAccumMs: number;
+  effective: EffectiveShieldStats;
 }
 
 /** Projectile de la baguette. Explose à l'impact OU à portée max. */
@@ -180,6 +188,7 @@ export interface World {
   sword: Sword;
   bow: Bow;
   fireWand: FireWand;
+  shield: Shield;
   mobs: Mob[];
   arrows: Arrow[];
   fireProjectiles: FireProjectile[];

@@ -116,7 +116,7 @@ type GameStore = {
 };
 
 function emptyKeys(): Record<WeaponKind, number> {
-  return { sword: 0, bow: 0, fireWand: 0 };
+  return { sword: 0, bow: 0, fireWand: 0, shield: 0 };
 }
 
 export const useGame = create<GameStore>((set, get) => ({
@@ -350,11 +350,13 @@ function clone(p: GameProgression): GameProgression {
       sword: { xp: { ...p.weapons.sword.xp }, tier: { ...p.weapons.sword.tier } },
       bow: { xp: { ...p.weapons.bow.xp }, tier: { ...p.weapons.bow.tier } },
       fireWand: { xp: { ...p.weapons.fireWand.xp }, tier: { ...p.weapons.fireWand.tier } },
+      shield: { xp: { ...p.weapons.shield.xp }, tier: { ...p.weapons.shield.tier } },
     },
     trempage: {
       sword: { ...(p.trempage?.sword ?? {}) },
       bow: { ...(p.trempage?.bow ?? {}) },
       fireWand: { ...(p.trempage?.fireWand ?? {}) },
+      shield: { ...(p.trempage?.shield ?? {}) },
     },
   };
 }

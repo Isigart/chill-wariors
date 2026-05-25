@@ -217,6 +217,63 @@ export function renderWorld(ctx: CanvasRenderingContext2D, world: World) {
     }
   }
 
+  // 7.8 Bouclier équipé : aura filled + anneau permanent + sparks tempête.
+  const shieldEquipped = world.equipped === "shield";
+  if (shieldEquipped) {
+    const shEff = world.shield.effective;
+    const ringTint = shEff.visual.ringTint ?? "#b8924a";
+    const glow = shEff.visual.ringGlow ?? 0;
+    if (shEff.visual.auraFill && shEff.auraRadius > 0) {
+      const auraGrad = ctx.createRadialGradient(px, py, BALANCE.player.radius, px, py, shEff.auraRadius);
+      auraGrad.addColorStop(0, hexAlpha(ringTint, 0.16));
+      auraGrad.addColorStop(0.6, hexAlpha(ringTint, 0.08));
+      auraGrad.addColorStop(1, hexAlpha(ringTint, 0));
+      ctx.fillStyle = auraGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, shEff.auraRadius, 0, TWO_PI);
+      ctx.fill();
+    }
+    ctx.save();
+    if (glow > 0) {
+      ctx.shadowColor = ringTint;
+      ctx.shadowBlur = 6 + glow * 14;
+    }
+    const sinceBash = world.nowMs - world.shield.lastBashAt;
+    const cdRatio = Math.min(1, sinceBash / shEff.bashCooldownMs);
+    const pulse = 1 - 0.06 * Math.cos(cdRatio * Math.PI * 2);
+    const r = shEff.bashRadius * pulse;
+    ctx.lineWidth = 2 + glow * 2;
+    ctx.strokeStyle = hexAlpha(ringTint, 0.55 + glow * 0.3);
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, TWO_PI);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = hexAlpha("#f8ecc8", 0.25 + glow * 0.2);
+    ctx.beginPath();
+    ctx.arc(px, py, r * 0.985, 0, TWO_PI);
+    ctx.stroke();
+    ctx.restore();
+    if (shEff.visual.stormSparks && Math.random() < 0.3) {
+      const a = Math.random() * TWO_PI;
+      const r2 = shEff.auraRadius * (0.7 + Math.random() * 0.3);
+      const ex = px + Math.cos(a) * r2;
+      const ey = py + Math.sin(a) * r2;
+      ctx.save();
+      ctx.shadowColor = "#9bd47a";
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = "#9bd47a";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      const midX = (px + ex) / 2 + (Math.random() - 0.5) * 12;
+      const midY = (py + ey) / 2 + (Math.random() - 0.5) * 12;
+      ctx.lineTo(midX, midY);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   // 8. Perso. Ivoire chaud (médiéval) au lieu de blanc pur (tech).
   ctx.fillStyle = "#f0e2c0";
   ctx.beginPath();

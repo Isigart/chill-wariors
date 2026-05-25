@@ -257,11 +257,13 @@ function sanitize(input: unknown): GameProgression {
       sword: { xp: { ...def.weapons.sword.xp }, tier: { ...def.weapons.sword.tier } },
       bow: { xp: { ...def.weapons.bow.xp }, tier: { ...def.weapons.bow.tier } },
       fireWand: { xp: { ...def.weapons.fireWand.xp }, tier: { ...def.weapons.fireWand.tier } },
+      shield: { xp: { ...def.weapons.shield.xp }, tier: { ...def.weapons.shield.tier } },
     },
     trempage: {
       sword: { ...def.trempage.sword },
       bow: { ...def.trempage.bow },
       fireWand: { ...def.trempage.fireWand },
+      shield: { ...def.trempage.shield },
     },
   };
 

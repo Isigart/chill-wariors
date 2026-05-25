@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { createWorld, resizeWorld } from "@/game/world";
 import { tickWorld } from "@/game/tick";
 import { renderWorld } from "@/game/render";
-import { getEffectiveBowStats, getEffectiveFireWandStats, getEffectiveSwordStats } from "@/game/progression";
+import { getEffectiveBowStats, getEffectiveFireWandStats, getEffectiveShieldStats, getEffectiveSwordStats } from "@/game/progression";
 import type { World } from "@/game/types";
 import { useGame } from "@/lib/store";
 import { loadSave, persistFromStore } from "@/lib/save";
@@ -178,22 +178,26 @@ export default function GameCanvas() {
       const swT = s.progression.weapons.sword.tier;
       const bwT = s.progression.weapons.bow.tier;
       const fwT = s.progression.weapons.fireWand.tier;
+      const shT = s.progression.weapons.shield.tier;
       // Inclus trempage : tempering modifie les stats effectives sans toucher aux tiers.
       const tr = s.progression.trempage;
       const trKey =
         `${tr.sword.speed ?? 0}.${tr.sword.range ?? 0}.${tr.sword.damage ?? 0}` +
         `:${tr.bow.cadence ?? 0}.${tr.bow.pierce ?? 0}.${tr.bow.multi ?? 0}` +
-        `:${tr.fireWand.inferno ?? 0}.${tr.fireWand.brasier ?? 0}.${tr.fireWand.lancers ?? 0}`;
+        `:${tr.fireWand.inferno ?? 0}.${tr.fireWand.brasier ?? 0}.${tr.fireWand.lancers ?? 0}` +
+        `:${tr.shield?.forteresse ?? 0}.${tr.shield?.aura ?? 0}.${tr.shield?.riposte ?? 0}`;
       const key =
         `${swT.speed ?? 0}-${swT.range ?? 0}-${swT.damage ?? 0}` +
         `|${bwT.cadence ?? 0}-${bwT.pierce ?? 0}-${bwT.multi ?? 0}` +
         `|${fwT.inferno ?? 0}-${fwT.brasier ?? 0}-${fwT.lancers ?? 0}` +
+        `|${shT.forteresse ?? 0}-${shT.aura ?? 0}-${shT.riposte ?? 0}` +
         `~${trKey}`;
       if (key !== lastTiersKeyRef.current) {
         lastTiersKeyRef.current = key;
         w.sword.effective = getEffectiveSwordStats(s.progression);
         w.bow.effective = getEffectiveBowStats(s.progression);
         w.fireWand.effective = getEffectiveFireWandStats(s.progression);
+        w.shield.effective = getEffectiveShieldStats(s.progression);
       }
       if (s.progression.equipped !== lastEquippedRef.current) {
         lastEquippedRef.current = s.progression.equipped;

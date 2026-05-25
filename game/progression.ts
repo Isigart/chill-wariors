@@ -10,6 +10,9 @@ import {
   type FireWandStatOverride,
   type FireWandTierEffects,
   type FireWandTierVisual,
+  type ShieldStatOverride,
+  type ShieldTierEffects,
+  type ShieldTierVisual,
   type SwordStatOverride,
   type SwordTierEffects,
   type SwordTierVisual,
@@ -70,6 +73,17 @@ export interface EffectiveFireWandStats {
   visual: FireWandTierVisual;
 }
 
+export interface EffectiveShieldStats {
+  bashRadius: number;
+  bashCooldownMs: number;
+  bashDamage: number;
+  auraRadius: number;
+  auraDps: number;
+  knockbackForce: number;
+  effects: ShieldTierEffects;
+  visual: ShieldTierVisual;
+}
+
 /* ---------- Init ---------- */
 
 function emptyWeaponProg(kind: WeaponKind): WeaponProgression {
@@ -83,8 +97,8 @@ function emptyWeaponProg(kind: WeaponKind): WeaponProgression {
 }
 
 function emptyTrempage(): Record<WeaponKind, Record<string, number>> {
-  const t: Record<WeaponKind, Record<string, number>> = { sword: {}, bow: {}, fireWand: {} };
-  for (const w of ["sword", "bow", "fireWand"] as WeaponKind[]) {
+  const t: Record<WeaponKind, Record<string, number>> = { sword: {}, bow: {}, fireWand: {}, shield: {} };
+  for (const w of ["sword", "bow", "fireWand", "shield"] as WeaponKind[]) {
     for (const b of BRANCHES_OF[w]) t[w][b as string] = 0;
   }
   return t;
@@ -98,6 +112,7 @@ export function createProgression(): GameProgression {
       sword: emptyWeaponProg("sword"),
       bow: emptyWeaponProg("bow"),
       fireWand: emptyWeaponProg("fireWand"),
+      shield: emptyWeaponProg("shield"),
     },
     trempage: emptyTrempage(),
   };
@@ -120,6 +135,46 @@ export function isWeaponMaxed(prog: GameProgression, weapon: WeaponKind): boolea
 /** Liste des armes maxées (toutes branches T5). Utile pour l'UI altar. */
 export function maxedWeapons(prog: GameProgression): WeaponKind[] {
   return (["sword", "bow", "fireWand"] as WeaponKind[]).filter((w) => isWeaponMaxed(prog, w));
+}
+
+export function getEffectiveShieldStats(prog: GameProgression): EffectiveShieldStats {
+  const base = BALANCE.weapons.shield.base;
+  let bashRadius: number = base.bashRadius;
+  let bashCooldownMs: number = base.bashCooldownMs;
+  let bashDamage: number = base.bashDamage;
+  let auraRadius: number = base.auraRadius;
+  let auraDps: number = base.auraDps;
+  let knockbackForce: number = base.knockbackForce;
+  const effects: ShieldTierEffects = {};
+  const visual: ShieldTierVisual = {};
+
+  const wp = prog.weapons.shield;
+  for (const branch of BRANCHES_OF.shield) {
+    const t = wp.tier[branch as string];
+    if (!t || t < 1) continue;
+    const def = BALANCE.weapons.shield.branches[branch].tiers[t - 1] as { stats: ShieldStatOverride; effects?: ShieldTierEffects; visual?: ShieldTierVisual };
+    if (def.stats.bashRadius !== undefined) bashRadius = def.stats.bashRadius;
+    if (def.stats.bashCooldownMs !== undefined) bashCooldownMs = def.stats.bashCooldownMs;
+    if (def.stats.bashDamage !== undefined) bashDamage = def.stats.bashDamage;
+    if (def.stats.auraRadius !== undefined) auraRadius = def.stats.auraRadius;
+    if (def.stats.auraDps !== undefined) auraDps = def.stats.auraDps;
+    if (def.stats.knockbackForce !== undefined) knockbackForce = def.stats.knockbackForce;
+    if (def.effects) Object.assign(effects, def.effects);
+    if (def.visual) Object.assign(visual, def.visual);
+  }
+
+  const trempageStats: Record<string, number> = { bashRadius, bashCooldownMs, bashDamage, auraRadius, auraDps, knockbackForce };
+  applyTrempage(prog, "shield", trempageStats);
+  return {
+    bashRadius: trempageStats.bashRadius,
+    bashCooldownMs: Math.max(150, trempageStats.bashCooldownMs),
+    bashDamage: trempageStats.bashDamage,
+    auraRadius: trempageStats.auraRadius,
+    auraDps: trempageStats.auraDps,
+    knockbackForce: trempageStats.knockbackForce,
+    effects,
+    visual,
+  };
 }
 
 /** Au moins une arme maxée — gate du drop des Clefs de Mine. */

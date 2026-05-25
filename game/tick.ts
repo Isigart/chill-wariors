@@ -4,6 +4,7 @@ import { tickSpawn } from "./spawn";
 import { applyKnockback, rollCrit, triggerExplosion } from "./effects";
 import { tickBow } from "./bow";
 import { tickFireWand } from "./fireWand";
+import { tickShield } from "./shield";
 import { tickInstanceWaves, tickPlayerContact } from "./instance";
 import { tickSubmersion } from "./submersion";
 
@@ -214,6 +215,10 @@ export function tickWorld(world: World, dtMs: number, hooks: TickHooks) {
   /* ----- BAGUETTE DE FEU ----- */
 
   tickFireWand(world, dtMs, hooks);
+
+  /* ----- BOUCLIER ----- */
+
+  tickShield(world, dtMs, hooks);
 
   /* ----- Vieillissement particules / popups / trail ----- */
 
