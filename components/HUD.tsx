@@ -24,22 +24,22 @@ export default function HUD() {
   return (
     <>
       {/* Kills (toujours visible) */}
-      <div className="pointer-events-none absolute left-4 top-4 select-none font-mono">
-        <div className="text-[10px] tracking-[0.3em] text-white/40">KILLS</div>
-        <div className="text-4xl font-bold tabular-nums leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+      <div className="pointer-events-none absolute left-2 top-2 select-none font-mono sm:left-4 sm:top-4">
+        <div className="text-[9px] tracking-[0.3em] text-white/40 sm:text-[10px]">KILLS</div>
+        <div className="text-2xl font-bold tabular-nums leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-4xl">
           {kills}
         </div>
       </div>
 
       {/* En haut à droite : mithril (total live en instance) + bouton mode */}
-      <div className="pointer-events-auto absolute right-4 top-4 select-none flex flex-col items-end gap-2 font-mono">
+      <div className="pointer-events-auto absolute right-2 top-2 flex select-none flex-col items-end gap-1.5 font-mono sm:right-4 sm:top-4 sm:gap-2">
         <div className="text-right">
-          <div className="text-[10px] tracking-[0.3em] text-amber-300/60">MITHRIL</div>
-          <div className="text-2xl font-bold tabular-nums leading-none text-amber-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+          <div className="text-[9px] tracking-[0.3em] text-amber-300/60 sm:text-[10px]">MITHRIL</div>
+          <div className="text-lg font-bold tabular-nums leading-none text-amber-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] sm:text-2xl">
             {mode === "instance" ? mithril + mithrilInRun : mithril}
           </div>
           {mode === "instance" && mithrilInRun > 0 && (
-            <div className="mt-0.5 text-[10px] tabular-nums text-amber-300/90">
+            <div className="mt-0.5 text-[9px] tabular-nums text-amber-300/90 sm:text-[10px]">
               +{mithrilInRun} ce run
             </div>
           )}
@@ -47,19 +47,20 @@ export default function HUD() {
         {mode === "idle" && (
           <button
             onClick={enterInstance}
-            className="rounded-md border-2 border-amber-400/40 bg-amber-400/[0.05] px-3 py-1.5 text-xs font-bold tracking-[0.2em] text-amber-200 transition hover:border-amber-400/80 hover:bg-amber-400/[0.12] active:scale-[0.97]"
+            className="rounded-md border-2 border-amber-400/40 bg-amber-400/[0.05] px-2 py-1 text-[10px] font-bold tracking-[0.15em] text-amber-200 transition hover:border-amber-400/80 hover:bg-amber-400/[0.12] active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-xs sm:tracking-[0.2em]"
           >
-            ⛏ ENTRER DANS LA MINE
+            <span className="sm:hidden">⛏ MINE</span>
+            <span className="hidden sm:inline">⛏ ENTRER DANS LA MINE</span>
           </button>
         )}
       </div>
 
       {/* Centre-haut : indicateur de vague d'instance */}
       {mode === "instance" && (
-        <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center font-mono">
-          <div className="rounded-md border border-amber-400/30 bg-black/40 px-4 py-1.5 backdrop-blur-sm">
-            <div className="text-center text-[10px] tracking-[0.3em] text-amber-300/60">VAGUE</div>
-            <div className="text-center text-2xl font-bold tabular-nums leading-none text-white">
+        <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center font-mono sm:top-4">
+          <div className="rounded-md border border-amber-400/30 bg-black/40 px-3 py-1 backdrop-blur-sm sm:px-4 sm:py-1.5">
+            <div className="text-center text-[9px] tracking-[0.3em] text-amber-300/60 sm:text-[10px]">VAGUE</div>
+            <div className="text-center text-xl font-bold tabular-nums leading-none text-white sm:text-2xl">
               {instanceWave}
             </div>
           </div>
@@ -69,14 +70,14 @@ export default function HUD() {
       {/* HP bar + mithril du run + bouton quitter (instance uniquement) */}
       {mode === "instance" && (
         <>
-          <div className="pointer-events-none absolute bottom-4 left-4 flex flex-col gap-1 font-mono">
-            <div className="flex items-center gap-2 text-[10px] tracking-[0.25em] text-white/50">
+          <div className="pointer-events-none absolute bottom-2 left-2 flex flex-col gap-1 font-mono sm:bottom-4 sm:left-4">
+            <div className="flex items-center gap-2 text-[9px] tracking-[0.2em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
               <span>HP</span>
               <span className="text-white/80 tabular-nums">
                 {Math.ceil(playerHp)} / {playerHpMax}
               </span>
             </div>
-            <div className="relative h-3 w-64 max-w-[60vw] overflow-hidden rounded-full border border-white/15 bg-black/40">
+            <div className="relative h-2.5 w-44 max-w-[55vw] overflow-hidden rounded-full border border-white/15 bg-black/40 sm:h-3 sm:w-64 sm:max-w-[60vw]">
               <div
                 className="absolute inset-y-0 left-0 transition-[width] duration-100"
                 style={{
@@ -85,17 +86,21 @@ export default function HUD() {
                 }}
               />
             </div>
-            <div className="text-[10px] tracking-[0.25em] text-amber-300/80">
-              MITHRIL RÉCOLTÉ : <span className="tabular-nums text-amber-200">{mithrilInRun}</span>
+            <div className="text-[9px] tracking-[0.2em] text-amber-300/80 sm:text-[10px] sm:tracking-[0.25em]">
+              <span className="hidden sm:inline">MITHRIL RÉCOLTÉ : </span>
+              <span className="sm:hidden">+</span>
+              <span className="tabular-nums text-amber-200">{mithrilInRun}</span>
+              <span className="sm:hidden"> ✦</span>
             </div>
           </div>
 
-          <div className="pointer-events-auto absolute bottom-4 right-4 font-mono">
+          <div className="pointer-events-auto absolute bottom-2 right-2 font-mono sm:bottom-4 sm:right-4">
             <button
               onClick={endRun}
-              className="rounded-md border-2 border-white/30 bg-white/[0.05] px-3 py-1.5 text-xs font-bold tracking-[0.2em] text-white/80 transition hover:border-amber-400/60 hover:text-amber-200 active:scale-[0.97]"
+              className="rounded-md border-2 border-white/30 bg-white/[0.05] px-2 py-1 text-[10px] font-bold tracking-[0.15em] text-white/80 transition hover:border-amber-400/60 hover:text-amber-200 active:scale-[0.97] sm:px-3 sm:py-1.5 sm:text-xs sm:tracking-[0.2em]"
             >
-              ⚱ TENTER LE RITUEL
+              <span className="sm:hidden">⚱ RITUEL</span>
+              <span className="hidden sm:inline">⚱ TENTER LE RITUEL</span>
             </button>
           </div>
         </>

@@ -55,7 +55,7 @@ export default function SkillTreeHUD() {
   if (mode !== "idle") return null;
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-3 flex flex-col items-center gap-2 font-mono">
+    <div className="pointer-events-auto absolute inset-x-0 bottom-2 flex flex-col items-center gap-1 px-1 font-mono sm:bottom-3 sm:gap-2">
       {WEAPONS.map((weapon) => (
         <WeaponRow
           key={weapon}
@@ -93,22 +93,25 @@ function WeaponRow(props: {
   const rowOpacity = props.equipped ? 1 : 0.45;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1" style={{ opacity: rowOpacity }}>
-      <div className="flex w-20 flex-col">
+    <div
+      className="flex w-full max-w-[640px] items-center gap-1 px-1 py-0.5 sm:gap-2 sm:px-3 sm:py-1"
+      style={{ opacity: rowOpacity }}
+    >
+      <div className="flex w-12 shrink-0 flex-col sm:w-20">
         <div
-          className="text-[10px] font-bold tracking-[0.25em]"
+          className="text-[9px] font-bold tracking-[0.2em] sm:text-[10px] sm:tracking-[0.25em]"
           style={{ color: wTint }}
         >
           {WEAPON_LABEL[props.weapon]}
         </div>
         <div
-          className="text-[8px] tracking-[0.2em]"
+          className="text-[7px] tracking-[0.15em] sm:text-[8px] sm:tracking-[0.2em]"
           style={{ color: props.equipped ? "#a8e6a8" : "rgba(255,255,255,0.35)" }}
         >
-          {props.equipped ? "● ÉQUIPÉE" : "○ DORT"}
+          {props.equipped ? "● ON" : "○ OFF"}
         </div>
       </div>
-      <div className="flex flex-wrap items-stretch gap-2">
+      <div className="flex min-w-0 flex-1 items-stretch gap-1 sm:gap-2">
         {branches.map((branch) => {
           const tint = BRANCH_TINT[props.weapon][branch];
           const tier = progression.weapons[props.weapon].tier[branch] ?? 0;
@@ -121,7 +124,7 @@ function WeaponRow(props: {
             <button
               key={branch}
               onClick={() => props.onSelect(branch)}
-              className={`group relative flex w-40 select-none flex-col gap-1.5 rounded-md border-2 px-2.5 py-2 text-left transition active:scale-[0.98] ${
+              className={`group relative flex min-w-0 flex-1 select-none flex-col gap-1 rounded-md border-2 px-1.5 py-1.5 text-left transition active:scale-[0.98] sm:gap-1.5 sm:px-2.5 sm:py-2 ${
                 active
                   ? "border-white/70 bg-white/[0.08]"
                   : "border-white/10 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.05]"
@@ -130,14 +133,17 @@ function WeaponRow(props: {
                 boxShadow: active ? `0 0 12px ${tint}55, inset 0 0 0 1px ${tint}30` : undefined,
               }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm leading-none">{BRANCH_ICON[props.weapon][branch]}</span>
-                  <span className="text-[9px] font-bold tracking-[0.25em]" style={{ color: tint }}>
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
+                  <span className="text-xs leading-none sm:text-sm">{BRANCH_ICON[props.weapon][branch]}</span>
+                  <span
+                    className="truncate text-[8px] font-bold tracking-[0.15em] sm:text-[9px] sm:tracking-[0.25em]"
+                    style={{ color: tint }}
+                  >
                     {BRANCH_LABEL[props.weapon][branch]}
                   </span>
                 </div>
-                <div className="text-[9px] text-white/50 tabular-nums">
+                <div className="shrink-0 text-[8px] text-white/50 tabular-nums sm:text-[9px]">
                   T{tier}/{MAX_TIER}
                 </div>
               </div>
@@ -147,12 +153,12 @@ function WeaponRow(props: {
                   style={{ width: `${ratio * 100}%`, background: tint }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[8px] tabular-nums">
-                <span className="text-white/40">
-                  {gauge.atMax ? "MAX" : `${gauge.current} / ${gauge.max}`}
+              <div className="flex items-center justify-between gap-1 text-[7px] tabular-nums sm:text-[8px]">
+                <span className="truncate text-white/40">
+                  {gauge.atMax ? "MAX" : `${gauge.current}/${gauge.max}`}
                 </span>
                 {active && (
-                  <span className="text-[7px] tracking-[0.25em] text-white/60">EN COURS</span>
+                  <span className="shrink-0 text-[6px] tracking-[0.2em] text-white/60 sm:text-[7px] sm:tracking-[0.25em]">EN COURS</span>
                 )}
               </div>
 

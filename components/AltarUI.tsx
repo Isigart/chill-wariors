@@ -56,39 +56,39 @@ export default function AltarUI() {
 
   return (
     <div className="absolute inset-0 z-20 flex items-start justify-center overflow-y-auto bg-black/85 backdrop-blur-md">
-      <div className="flex w-full max-w-2xl flex-col items-stretch gap-6 px-6 py-8">
+      <div className="flex w-full max-w-2xl flex-col items-stretch gap-4 px-3 py-6 sm:gap-6 sm:px-6 sm:py-8">
         {/* En-tête */}
         <div className="text-center">
-          <div className="font-mono text-xs tracking-[0.4em] text-amber-300/60">
+          <div className="font-mono text-[10px] tracking-[0.35em] text-amber-300/60 sm:text-xs sm:tracking-[0.4em]">
             {isDeath ? "VOUS ÊTES TOMBÉ" : "L'AUTEL"}
           </div>
-          <div className="mt-2 font-mono text-3xl font-bold text-white">
+          <div className="mt-1 font-mono text-xl font-bold text-white sm:mt-2 sm:text-3xl">
             Rituel de trempage
           </div>
         </div>
 
         {/* Récap mithril */}
-        <div className="rounded-lg border-2 border-amber-400/30 bg-amber-400/[0.05] px-5 py-3 text-center">
-          <div className="font-mono text-[10px] tracking-[0.3em] text-amber-300/60">
+        <div className="rounded-lg border-2 border-amber-400/30 bg-amber-400/[0.05] px-4 py-2 text-center sm:px-5 sm:py-3">
+          <div className="font-mono text-[9px] tracking-[0.25em] text-amber-300/60 sm:text-[10px] sm:tracking-[0.3em]">
             MITHRIL DISPONIBLE
           </div>
-          <div className="mt-1 font-mono text-4xl font-bold tabular-nums text-amber-200 drop-shadow-[0_2px_10px_rgba(255,196,80,0.3)]">
+          <div className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-amber-200 drop-shadow-[0_2px_10px_rgba(255,196,80,0.3)] sm:mt-1 sm:text-4xl">
             {totalMithril}
           </div>
           {mithrilInRun > 0 && (
-            <div className="text-[10px] font-mono text-amber-300/60">
+            <div className="font-mono text-[9px] text-amber-300/60 sm:text-[10px]">
               dont +{mithrilInRun} ramassés ce run
             </div>
           )}
         </div>
 
         {/* Indicateur tentatives + arme équipée */}
-        <div className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-black/40 px-4 py-2">
-          <div className="font-mono text-[11px] tracking-[0.25em]">
-            <span className="text-white/40">ARME PROPOSÉE&nbsp;:&nbsp;</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-black/40 px-3 py-2 sm:px-4">
+          <div className="font-mono text-[10px] tracking-[0.2em] sm:text-[11px] sm:tracking-[0.25em]">
+            <span className="text-white/40">ARME&nbsp;:&nbsp;</span>
             <span style={{ color: WEAPON_TINT[equippedWeapon] }}>{WEAPON_LABEL[equippedWeapon]}</span>
           </div>
-          <div className="font-mono text-[11px] tabular-nums tracking-[0.2em]">
+          <div className="font-mono text-[10px] tabular-nums tracking-[0.2em] sm:text-[11px]">
             <span className="text-white/40">TENTATIVES&nbsp;:&nbsp;</span>
             <span className={exhausted ? "text-red-300" : "text-amber-200"}>
               {trempageAttempts} / {TREMPAGE.maxAttemptsPerVisit}
@@ -137,9 +137,9 @@ export default function AltarUI() {
 
       {/* Flash de résultat */}
       {flash && (
-        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-3">
           <div
-            className="rounded-xl border-4 px-12 py-8 font-mono text-3xl font-bold tracking-[0.2em] drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)]"
+            className="rounded-xl border-4 px-6 py-5 text-center font-mono text-base font-bold tracking-[0.15em] drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] sm:px-12 sm:py-8 sm:text-3xl sm:tracking-[0.2em]"
             style={{
               borderColor: flash.success ? "#ffd76b" : "#ff5a5a",
               background: flash.success ? "rgba(80, 50, 0, 0.85)" : "rgba(60, 20, 20, 0.85)",
@@ -148,9 +148,9 @@ export default function AltarUI() {
             }}
           >
             {flash.success
-              ? `✦ TREMPAGE NIVEAU ${flash.newLevel}`
-              : `✗ RUPTURE — RETOMBÉ À ${flash.newLevel}`}
-            <div className="mt-2 text-center text-xs tracking-[0.3em]" style={{ color: flash.success ? "#ffd76b" : "#ff8a8a" }}>
+              ? `✦ NIVEAU ${flash.newLevel}`
+              : `✗ RETOMBÉ À ${flash.newLevel}`}
+            <div className="mt-2 text-center text-[10px] tracking-[0.25em] sm:text-xs sm:tracking-[0.3em]" style={{ color: flash.success ? "#ffd76b" : "#ff8a8a" }}>
               {BRANCH_LABEL[flash.weapon][flash.branch]} — {WEAPON_LABEL[flash.weapon]}
             </div>
           </div>
@@ -192,73 +192,69 @@ function BranchRow(props: {
   const max = Math.max(0, props.mithrilAvailable);
 
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.03] px-4 py-3">
-      <div className="flex items-baseline justify-between">
-        <div className="flex items-baseline gap-2">
-          <span className="font-mono text-[10px] tracking-[0.25em]" style={{ color: wTint }}>
+    <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 sm:px-4 sm:py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-1">
+        <div className="flex items-baseline gap-1.5 sm:gap-2">
+          <span className="font-mono text-[9px] tracking-[0.2em] sm:text-[10px] sm:tracking-[0.25em]" style={{ color: wTint }}>
             {WEAPON_LABEL[props.weapon]}
           </span>
-          <span className="font-mono text-sm font-bold tracking-[0.15em]" style={{ color: tint }}>
+          <span className="font-mono text-xs font-bold tracking-[0.15em] sm:text-sm" style={{ color: tint }}>
             {BRANCH_LABEL[props.weapon][props.branch]}
           </span>
         </div>
-        <div className="font-mono text-xs text-white/60 tabular-nums">
+        <div className="font-mono text-[10px] text-white/60 tabular-nums sm:text-xs">
           Trempage <span className="text-white">{props.level}</span> →{" "}
           <span className="text-amber-200">{target}</span>
         </div>
       </div>
 
-      <div className="mt-2 grid grid-cols-[1fr_auto] gap-3 items-center">
-        <div className="flex items-center gap-2">
-          <input
-            type="range"
-            min={0}
-            max={max}
-            step={1}
-            value={injected}
-            onChange={(e) => setInjected(Number(e.target.value))}
-            className="flex-1 accent-amber-400"
-            disabled={max === 0 || props.disabled}
-          />
-          <input
-            type="number"
-            min={0}
-            max={max}
-            value={injected}
-            onChange={(e) => setInjected(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
-            disabled={props.disabled}
-            className="w-20 rounded border border-white/15 bg-black/40 px-2 py-1 text-right font-mono text-xs tabular-nums text-amber-100 disabled:opacity-40"
-          />
-          <button
-            onClick={() => setInjected(Math.min(max, TREMPAGE.optimalMithril(target)))}
-            disabled={max === 0 || props.disabled}
-            className="rounded border border-amber-400/40 bg-amber-400/[0.05] px-2 py-1 font-mono text-[10px] font-bold tracking-[0.2em] text-amber-200 transition hover:border-amber-400 hover:bg-amber-400/[0.15] disabled:opacity-40 disabled:hover:border-amber-400/40 disabled:hover:bg-amber-400/[0.05]"
-            title="Mithril optimal pour le cap 99% (sans gaspiller)"
-          >
-            MAX
-          </button>
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          type="range"
+          min={0}
+          max={max}
+          step={1}
+          value={injected}
+          onChange={(e) => setInjected(Number(e.target.value))}
+          className="min-w-0 flex-1 accent-amber-400"
+          disabled={max === 0 || props.disabled}
+        />
+        <input
+          type="number"
+          min={0}
+          max={max}
+          value={injected}
+          onChange={(e) => setInjected(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
+          disabled={props.disabled}
+          className="w-14 shrink-0 rounded border border-white/15 bg-black/40 px-1.5 py-1 text-right font-mono text-[11px] tabular-nums text-amber-100 disabled:opacity-40 sm:w-20 sm:px-2 sm:text-xs"
+        />
+        <button
+          onClick={() => setInjected(Math.min(max, TREMPAGE.optimalMithril(target)))}
+          disabled={max === 0 || props.disabled}
+          className="shrink-0 rounded border border-amber-400/40 bg-amber-400/[0.05] px-1.5 py-1 font-mono text-[9px] font-bold tracking-[0.15em] text-amber-200 transition hover:border-amber-400 hover:bg-amber-400/[0.15] disabled:opacity-40 disabled:hover:border-amber-400/40 disabled:hover:bg-amber-400/[0.05] sm:px-2 sm:text-[10px] sm:tracking-[0.2em]"
+          title="Mithril optimal pour le cap 99% (sans gaspiller)"
+        >
+          MAX
+        </button>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 font-mono text-[9px] text-white/40 sm:text-[10px]">
+          {`Coût: ${injected} · échec: -${Math.min(props.level, 10)} niv.`}
         </div>
         <div className="text-right">
-          <div className="font-mono text-[9px] tracking-[0.25em] text-white/40">PROBA</div>
+          <div className="font-mono text-[8px] tracking-[0.25em] text-white/40 sm:text-[9px]">PROBA</div>
           <div
-            className="font-mono text-xl font-bold tabular-nums"
+            className="font-mono text-base font-bold tabular-nums leading-none sm:text-xl"
             style={{ color: probaPct >= 70 ? "#9be4a3" : probaPct >= 40 ? "#ffe18a" : "#ff8a8a" }}
           >
             {probaPct}%
           </div>
         </div>
-      </div>
-
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <div className="font-mono text-[10px] text-white/40">
-          {injected > 0
-            ? `Coût : ${injected} mithril · échec = -${Math.min(props.level, 10)} niveaux`
-            : `Coût : 0 (proba de base) · échec = -${Math.min(props.level, 10)} niveaux`}
-        </div>
         <button
           onClick={() => props.onAttempt(injected)}
           disabled={props.disabled}
-          className="rounded-md border-2 border-amber-400/40 bg-amber-400/[0.08] px-3 py-1 font-mono text-xs font-bold tracking-[0.2em] text-amber-200 transition hover:border-amber-400 hover:bg-amber-400/[0.18] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-amber-400/40 disabled:hover:bg-amber-400/[0.08]"
+          className="rounded-md border-2 border-amber-400/40 bg-amber-400/[0.08] px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.15em] text-amber-200 transition hover:border-amber-400 hover:bg-amber-400/[0.18] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-amber-400/40 disabled:hover:bg-amber-400/[0.08] sm:px-3 sm:text-xs sm:tracking-[0.2em]"
         >
           TENTER
         </button>
