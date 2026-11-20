@@ -1,27 +1,4 @@
-# deps
-node_modules/
-
-# next
-.next/
-out/
-
-# env
-.env*.local
-
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# os / editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# claude code local settings (user-specific)
-.claude/settings.local.json
+.godot/
+*.import
+export/
+export_presets.cfg
